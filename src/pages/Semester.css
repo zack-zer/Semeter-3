@@ -1,0 +1,43 @@
+.semester-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.block {
+  display: block;
+}
+.text-sm {
+  font-size: 0.875rem;
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+@media (max-width: 768px) {
+  .emoji-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+.emoji-btn {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.emoji-btn:hover {
+  background: var(--bg-hover);
+}
+.emoji-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}

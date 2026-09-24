@@ -1,0 +1,286 @@
+/* ===== FileViewer layout ===== */
+.viewer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--bg-primary);
+  z-index: 1000;
+}
+
+/* Thin progress bar at very top */
+.viewer-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 1002;
+}
+.viewer-progress-bar > div {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ===== Toolbar ===== */
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  height: 52px;
+  z-index: 1001;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.toolbar-left,
+.toolbar-right,
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbar-right {
+  flex-shrink: 0;
+}
+
+.toolbar-center {
+  flex-shrink: 0;
+}
+
+.viewer-breadcrumbs {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Page navigation */
+.page-input-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.page-input {
+  width: 52px;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  -moz-appearance: textfield;
+}
+.page-input::-webkit-inner-spin-button,
+.page-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.page-percent {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: center;
+}
+
+/* Zoom controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.zoom-text {
+  font-size: 0.8rem;
+  min-width: 44px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.zoom-fit {
+  border-left: 1px solid var(--border);
+}
+
+/* ===== Content area ===== */
+.viewer-content {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg-tertiary);
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* ===== PDF page wrapper (canvas + text layer) ===== */
+.pdf-page-wrapper {
+  position: relative;
+  display: inline-block;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  align-self: flex-start;
+}
+
+.pdf-canvas {
+  display: block;
+  background: white;
+}
+
+/*
+  Text layer — official pdfjs text layer CSS (from pdfjs-dist 3.11.174).
+  This sits on top of the canvas and makes text selectable/copyable.
+  opacity:0.25 is the official approach — the selection highlight
+  shows through clearly when you drag to select.
+*/
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.25;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+     -moz-text-size-adjust: none;
+          text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer span.markedContent {
+  top: 0;
+  height: 0;
+}
+
+.textLayer ::-moz-selection {
+  background: blue;
+  background: AccentColor;
+}
+
+.textLayer ::selection {
+  background: blue;
+  background: AccentColor;
+}
+
+.textLayer br::-moz-selection {
+  background: transparent;
+}
+.textLayer br::selection {
+  background: transparent;
+}
+
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: -1;
+  cursor: default;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+.textLayer .endOfContent.active {
+  top: 0;
+}
+
+/* ===== Image viewer ===== */
+.image-viewer {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* ===== Text / code viewer ===== */
+.text-viewer {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 32px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 800px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ===== Non-previewable file card ===== */
+.non-previewable {
+  margin: auto;
+  padding: 48px;
+  max-width: 400px;
+  width: 100%;
+}
+.non-previewable .empty-icon {
+  color: var(--text-muted);
+  margin: 0 auto 20px auto;
+}
+.non-previewable h2 {
+  margin-bottom: 8px;
+}
+
+/* ===== Loading / error states ===== */
+.viewer-loading,
+.viewer-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  font-size: 1.1rem;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .viewer-toolbar {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .viewer-breadcrumbs {
+    display: none;
+  }
+  .zoom-controls {
+    display: none;
+  }
+  .viewer-content {
+    padding: 8px;
+  }
+}

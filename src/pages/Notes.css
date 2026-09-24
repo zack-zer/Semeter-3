@@ -1,0 +1,10 @@
+.notes-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+.filter-bar {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
