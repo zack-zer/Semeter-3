@@ -1,7 +1,10 @@
 # Dependencies
 node_modules/
-*/node_modules/
 package-lock.json.bak
+
+# Production Build Output
+dist/
+dist-ssr/
 
 # Secrets & Environment variables
 .env
