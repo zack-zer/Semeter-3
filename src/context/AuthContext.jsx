@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   supabase,
-  isSupabaseConfigured,
+  getSupabaseConfig,
+  saveCustomSupabaseConfig,
+  clearCustomSupabaseConfig,
   normalizeUsername,
   validateUsername,
   deriveInternalEmail,
@@ -15,10 +17,11 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configState, setConfigState] = useState(() => getSupabaseConfig());
 
   // Fetch user profile from public.profiles table
   const fetchProfile = useCallback(async (userId) => {
-    if (!userId || !isSupabaseConfigured) return null;
+    if (!userId || !getSupabaseConfig().isConfigured) return null;
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -37,92 +40,120 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Initialize session on mount
-  useEffect(() => {
-    let mounted = true;
+  // Initialize or re-initialize session on mount or config reload
+  const initSession = useCallback(async () => {
+    setLoading(true);
+    const cfg = getSupabaseConfig();
+    setConfigState(cfg);
 
-    async function initSession() {
-      if (!isSupabaseConfigured) {
-        // Fallback for unconfigured dev environment
-        const localUser = localStorage.getItem('studyhub_dev_user');
-        if (localUser && mounted) {
-          try {
-            const parsed = JSON.parse(localUser);
-            setUser({ id: parsed.id || 'dev-user-id' });
-            setProfile(parsed);
-          } catch (e) {
-            localStorage.removeItem('studyhub_dev_user');
-          }
-        }
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.error('[StudyHub] Session retrieval error:', sessionError);
-        }
-
-        if (session?.user && mounted) {
-          setUser(session.user);
-          const prof = await fetchProfile(session.user.id);
-          if (mounted) setProfile(prof);
-        }
-      } catch (err) {
-        console.error('[StudyHub] Error initializing auth session:', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    initSession();
-
-    // Listen to auth state changes (token refresh, sign out, sign in from other tabs)
-    let authListener = null;
-    if (isSupabaseConfigured) {
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (!mounted) return;
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session?.user) {
-            setUser(session.user);
-            const prof = await fetchProfile(session.user.id);
-            if (mounted) setProfile(prof);
-          }
-        } else if (event === 'SIGNED_OUT') {
+    if (!cfg.isConfigured) {
+      // Local demo simulation fallback
+      const localUser = localStorage.getItem('studyhub_dev_user');
+      if (localUser) {
+        try {
+          const parsed = JSON.parse(localUser);
+          setUser({ id: parsed.id || 'dev-user-id' });
+          setProfile(parsed);
+        } catch (e) {
+          localStorage.removeItem('studyhub_dev_user');
           setUser(null);
           setProfile(null);
         }
-      });
-      authListener = data?.subscription;
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('[StudyHub] Session retrieval error:', sessionError);
+      }
+
+      if (session?.user) {
+        setUser(session.user);
+        const prof = await fetchProfile(session.user.id);
+        setProfile(prof || {
+          id: session.user.id,
+          username: session.user.user_metadata?.username || 'User',
+          username_normalized: session.user.user_metadata?.username_normalized || 'user',
+        });
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('[StudyHub] Error initializing auth session:', err);
+      setUser(null);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    initSession();
+
+    let authListener = null;
+    const cfg = getSupabaseConfig();
+    if (cfg.isConfigured) {
+      try {
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (session?.user) {
+              setUser(session.user);
+              const prof = await fetchProfile(session.user.id);
+              setProfile(prof || {
+                id: session.user.id,
+                username: session.user.user_metadata?.username || 'User',
+                username_normalized: session.user.user_metadata?.username_normalized || 'user',
+              });
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setProfile(null);
+          }
+        });
+        authListener = data?.subscription;
+      } catch (err) {
+        console.warn('[StudyHub] Could not attach auth listener:', err);
+      }
     }
 
     return () => {
-      mounted = false;
       if (authListener) authListener.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [initSession, fetchProfile]);
 
   /**
    * Check if a normalized username is already taken.
    */
   const checkUsernameExists = async (normalizedUsername) => {
-    if (!isSupabaseConfigured) {
+    const { isConfigured } = getSupabaseConfig();
+    if (!isConfigured) {
       const localUsers = JSON.parse(localStorage.getItem('studyhub_dev_users') || '[]');
       return localUsers.some((u) => u.username_normalized === normalizedUsername);
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username_normalized')
-      .eq('username_normalized', normalizedUsername)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username_normalized')
+        .eq('username_normalized', normalizedUsername)
+        .maybeSingle();
 
-    if (error) {
-      console.warn('[StudyHub] Note checking username:', error.message);
+      if (error) {
+        console.warn('[StudyHub] Username existence query notice:', error.message);
+        return false;
+      }
+      return Boolean(data);
+    } catch (err) {
+      console.warn('[StudyHub] Error checking username existence:', err);
       return false;
     }
-    return Boolean(data);
   };
 
   /**
@@ -137,13 +168,14 @@ export function AuthProvider({ children }) {
     }
 
     const normalized = normalizeUsername(rawUsername);
+    const { isConfigured } = getSupabaseConfig();
 
-    if (!isSupabaseConfigured) {
-      // Dev mode fallback
+    if (!isConfigured) {
+      // Local demo mode
       const localUsers = JSON.parse(localStorage.getItem('studyhub_dev_users') || '[]');
       const found = localUsers.find((u) => u.username_normalized === normalized);
       if (!found) {
-        throw new Error(`No account found with username "${rawUsername}". Please create an account first.`);
+        throw new Error(`Account "${rawUsername}" not found in local demo mode. Please create an account first.`);
       }
       const fakeUser = { id: found.id };
       setUser(fakeUser);
@@ -152,7 +184,7 @@ export function AuthProvider({ children }) {
       return { user: fakeUser, profile: found };
     }
 
-    // 1. Verify that the profile exists
+    // 1. Verify that profile exists in remote Supabase
     const exists = await checkUsernameExists(normalized);
     if (!exists) {
       throw new Error(`No account found with username "${rawUsername}". Please create an account first.`);
@@ -169,7 +201,7 @@ export function AuthProvider({ children }) {
     });
 
     if (signInError) {
-      throw new Error(signInError.message || 'Unable to sign in. Please verify your username.');
+      throw new Error(signInError.message || 'Unable to sign in. Please check your credentials.');
     }
 
     const authUser = data.user;
@@ -178,7 +210,7 @@ export function AuthProvider({ children }) {
     // 4. Fetch the profile
     let prof = await fetchProfile(authUser.id);
     if (!prof) {
-      // Re-create profile if missing
+      // Upsert profile if missing
       const { data: newProf } = await supabase
         .from('profiles')
         .upsert({
@@ -190,7 +222,7 @@ export function AuthProvider({ children }) {
         .single();
       prof = newProf;
     }
-    setProfile(prof);
+    setProfile(prof || { id: authUser.id, username: rawUsername.trim(), username_normalized: normalized });
     return { user: authUser, profile: prof };
   };
 
@@ -207,12 +239,13 @@ export function AuthProvider({ children }) {
 
     const normalized = normalizeUsername(rawUsername);
     const trimmed = rawUsername.trim();
+    const { isConfigured } = getSupabaseConfig();
 
-    if (!isSupabaseConfigured) {
-      // Dev mode fallback
+    if (!isConfigured) {
+      // Local demo mode
       const localUsers = JSON.parse(localStorage.getItem('studyhub_dev_users') || '[]');
       if (localUsers.some((u) => u.username_normalized === normalized)) {
-        throw new Error(`Username "${trimmed}" is already taken. Please choose another username.`);
+        throw new Error(`Username "${trimmed}" is already taken in local demo mode.`);
       }
       const newDevProf = {
         id: `dev-${Date.now()}`,
@@ -254,30 +287,47 @@ export function AuthProvider({ children }) {
       throw new Error(signUpError.message || 'Failed to create account. Please try again.');
     }
 
-    const authUser = data.user;
+    let authUser = data.user;
+
+    // If session is null (e.g. pending confirmation before trigger executed), perform sign in
+    if (!data.session && authUser) {
+      try {
+        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (!signInErr && signInData?.user) {
+          authUser = signInData.user;
+        }
+      } catch (e) {
+        console.warn('[StudyHub] Immediate sign-in attempt notice:', e);
+      }
+    }
+
     if (!authUser) {
-      throw new Error('Account creation initiated. Please try signing in.');
+      throw new Error('Account created. Please sign in with your username.');
     }
 
-    // 4. Create profile entry in profiles table
-    const { data: prof, error: profError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: authUser.id,
-        username: trimmed,
-        username_normalized: normalized,
-      })
-      .select()
-      .single();
+    // 4. Ensure profile entry exists
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authUser.id,
+          username: trimmed,
+          username_normalized: normalized,
+        })
+        .select()
+        .single();
 
-    if (profError) {
-      console.warn('[StudyHub] Profile insert notice:', profError);
+      setUser(authUser);
+      setProfile(prof || { id: authUser.id, username: trimmed, username_normalized: normalized });
+      return { user: authUser, profile: prof };
+    } catch (e) {
+      setUser(authUser);
+      setProfile({ id: authUser.id, username: trimmed, username_normalized: normalized });
+      return { user: authUser, profile: { id: authUser.id, username: trimmed } };
     }
-
-    setUser(authUser);
-    setProfile(prof || { id: authUser.id, username: trimmed, username_normalized: normalized });
-
-    return { user: authUser, profile: prof };
   };
 
   /**
@@ -285,7 +335,8 @@ export function AuthProvider({ children }) {
    */
   const signOut = async () => {
     try {
-      if (isSupabaseConfigured) {
+      const { isConfigured } = getSupabaseConfig();
+      if (isConfigured) {
         await supabase.auth.signOut();
       } else {
         localStorage.removeItem('studyhub_dev_user');
@@ -296,6 +347,22 @@ export function AuthProvider({ children }) {
       setUser(null);
       setProfile(null);
     }
+  };
+
+  /**
+   * Connect custom Supabase configuration at runtime
+   */
+  const connectSupabase = (url, anonKey) => {
+    saveCustomSupabaseConfig(url, anonKey);
+    return initSession();
+  };
+
+  /**
+   * Disconnect custom Supabase configuration
+   */
+  const disconnectSupabase = () => {
+    clearCustomSupabaseConfig();
+    return initSession();
   };
 
   const value = {
@@ -309,7 +376,12 @@ export function AuthProvider({ children }) {
     signUp,
     signOut,
     isAuthenticated: Boolean(user),
-    isConfigured: isSupabaseConfigured,
+    isConfigured: configState.isConfigured,
+    configSource: configState.source,
+    supabaseUrl: configState.url,
+    connectSupabase,
+    disconnectSupabase,
+    reloadConfig: initSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -28,6 +28,47 @@ CREATE POLICY "Users can update their own profile"
     ON public.profiles FOR UPDATE
     USING (auth.uid() = id);
 
+-- Triggers for Auth: Automatically confirm passwordless username accounts
+-- and create profile record upon user signup
+CREATE OR REPLACE FUNCTION public.auto_confirm_internal_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email LIKE '%@studyhub.internal' THEN
+    NEW.email_confirmed_at = COALESCE(NEW.email_confirmed_at, NOW());
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_auto_confirm_internal_user ON auth.users;
+CREATE TRIGGER trigger_auto_confirm_internal_user
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_confirm_internal_user();
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username, username_normalized)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'username_normalized', lower(split_part(NEW.email, '@', 1)))
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    username = EXCLUDED.username,
+    username_normalized = EXCLUDED.username_normalized,
+    updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- 3. SUBJECTS TABLE
 CREATE TABLE IF NOT EXISTS public.subjects (
     id TEXT PRIMARY KEY,

@@ -1,35 +1,160 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const authSalt = import.meta.env.VITE_AUTH_SALT || 'studyhub_auth_salt_semester3_secure';
+const safeEnv = (typeof import.meta !== 'undefined' && import.meta.env)
+  ? import.meta.env
+  : (typeof process !== 'undefined' && process.env ? process.env : {});
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl !== 'https://your-project-id.supabase.co' &&
-  !supabaseUrl.includes('placeholder')
-);
+const authSalt = safeEnv.VITE_AUTH_SALT || 'studyhub_auth_salt_semester3_secure';
 
-if (!isSupabaseConfigured) {
-  console.warn(
-    '[StudyHub] Supabase credentials not configured in environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Please set up your .env file.'
-  );
+function getSafeStorage() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
+  }
+  return {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  };
 }
 
-// Create Supabase client with persistent local session storage
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key',
-  {
+/**
+ * Returns current configuration values and status
+ */
+export function getSupabaseConfig() {
+  const envUrl = (safeEnv.VITE_SUPABASE_URL || '').trim();
+  const envKey = (safeEnv.VITE_SUPABASE_ANON_KEY || '').trim();
+
+  let localUrl = '';
+  let localKey = '';
+  try {
+    const storage = getSafeStorage();
+    localUrl = (storage.getItem('studyhub_custom_supabase_url') || '').trim();
+    localKey = (storage.getItem('studyhub_custom_supabase_anon_key') || '').trim();
+  } catch (e) {
+    // ignore in environments without localStorage
+  }
+
+
+  const isEnvValid = Boolean(
+    envUrl &&
+    envKey &&
+    envUrl.startsWith('https://') &&
+    !envUrl.includes('your-project-id') &&
+    !envUrl.includes('placeholder')
+  );
+
+  const isLocalValid = Boolean(
+    localUrl &&
+    localKey &&
+    localUrl.startsWith('https://') &&
+    !localUrl.includes('placeholder')
+  );
+
+  let activeUrl = '';
+  let activeKey = '';
+  let source = 'none';
+
+  if (isEnvValid) {
+    activeUrl = envUrl;
+    activeKey = envKey;
+    source = 'environment';
+  } else if (isLocalValid) {
+    activeUrl = localUrl;
+    activeKey = localKey;
+    source = 'manual';
+  }
+
+  const isConfigured = Boolean(activeUrl && activeKey);
+
+  return {
+    url: activeUrl,
+    anonKey: activeKey,
+    isConfigured,
+    source, // 'environment' | 'manual' | 'none'
+  };
+}
+
+let activeClient = null;
+
+export let isSupabaseConfigured = false;
+
+function buildClient() {
+  const { url, anonKey, isConfigured } = getSupabaseConfig();
+  isSupabaseConfigured = isConfigured;
+
+  if (!isConfigured) {
+    activeClient = createClient(
+      'https://placeholder.supabase.co',
+      'placeholder-anon-key',
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: getSafeStorage(),
+        },
+      }
+    );
+    return activeClient;
+  }
+
+  activeClient = createClient(url, anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: window.localStorage,
+      storage: getSafeStorage(),
     },
+  });
+
+  return activeClient;
+}
+
+// Initialize active client
+buildClient();
+
+/**
+ * Proxy object for supabase export to always direct calls to current client instance
+ */
+export const supabase = new Proxy({}, {
+  get(_target, prop) {
+    if (!activeClient) buildClient();
+    const val = activeClient[prop];
+    return typeof val === 'function' ? val.bind(activeClient) : val;
   }
-);
+});
+
+
+/**
+ * Saves custom Supabase configuration to localStorage (useful for instant testing or when Vercel envs are not yet rebuilt)
+ */
+export function saveCustomSupabaseConfig(rawUrl, rawKey) {
+  const url = (rawUrl || '').trim();
+  const anonKey = (rawKey || '').trim();
+
+  if (!url || !anonKey) {
+    throw new Error('Both Supabase URL and Anon Key are required.');
+  }
+
+  if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
+    throw new Error('Supabase URL must start with https:// and end with .supabase.co');
+  }
+
+  localStorage.setItem('studyhub_custom_supabase_url', url);
+  localStorage.setItem('studyhub_custom_supabase_anon_key', anonKey);
+
+  buildClient();
+  return { success: true };
+}
+
+/**
+ * Clears custom Supabase configuration from localStorage
+ */
+export function clearCustomSupabaseConfig() {
+  localStorage.removeItem('studyhub_custom_supabase_url');
+  localStorage.removeItem('studyhub_custom_supabase_anon_key');
+  buildClient();
+}
 
 /**
  * Normalizes a username for case-insensitive uniqueness and consistency.
@@ -60,7 +185,6 @@ export function validateUsername(username) {
   if (trimmed.length > 30) {
     return { valid: false, error: 'Username must not exceed 30 characters.' };
   }
-  // Allow letters, digits, underscores, hyphens, and periods
   const validPattern = /^[a-zA-Z0-9_.-]+$/;
   if (!validPattern.test(trimmed)) {
     return {
@@ -73,7 +197,6 @@ export function validateUsername(username) {
 
 /**
  * Derives an internal email address from normalized username.
- * Users never see or interact with this email.
  * @param {string} normalizedUsername
  * @returns {string}
  */
@@ -83,8 +206,7 @@ export function deriveInternalEmail(normalizedUsername) {
 
 /**
  * Derives a strong, deterministic secret key for passwordless username authentication
- * using Web Crypto SHA-256. This enables genuine Supabase JWT sessions & RLS without
- * requiring the user to memorize or enter a password.
+ * using Web Crypto SHA-256.
  * @param {string} normalizedUsername
  * @returns {Promise<string>}
  */
@@ -100,10 +222,10 @@ export async function deriveUserSecret(normalizedUsername) {
 
 /**
  * Retrieves the currently active user, or null if unauthenticated.
- * Works with both Supabase session and dev fallback.
  */
 export async function getCurrentUser() {
-  if (!isSupabaseConfigured) {
+  const { isConfigured } = getSupabaseConfig();
+  if (!isConfigured) {
     const localUser = localStorage.getItem('studyhub_dev_user');
     if (localUser) {
       try {
@@ -122,4 +244,3 @@ export async function getCurrentUser() {
     return null;
   }
 }
-
