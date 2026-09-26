@@ -8,9 +8,17 @@
   border-right: 1px solid var(--border);
   overflow-y: auto;
   z-index: 90;
-  transition: transform var(--transition);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -139,14 +147,20 @@
 }
 
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar,
+  .sidebar.collapsed {
     transform: translateX(-100%);
     top: var(--header-height);
     height: calc(100vh - var(--header-height));
+    visibility: hidden;
+    pointer-events: none;
   }
   
-  .sidebar.open {
+  .sidebar.open,
+  .sidebar.collapsed.open {
     transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .sidebar-backdrop {

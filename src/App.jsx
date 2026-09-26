@@ -18,14 +18,38 @@ function App() {
     return localStorage.getItem('theme') || 'dark';
   });
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop sidebar state: defaults to open (true), persisted in localStorage
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('studyhub_desktop_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Mobile sidebar state: defaults to closed (false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   const location = useLocation();
   const isViewer = location.pathname.startsWith('/viewer');
 
-  // Close sidebar on route change (mobile)
+  // Close mobile sidebar on route change
   useEffect(() => {
-    setSidebarOpen(false);
+    setMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  // Close mobile sidebar on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Persist desktop sidebar state
+  useEffect(() => {
+    localStorage.setItem('studyhub_desktop_sidebar_open', String(desktopSidebarOpen));
+  }, [desktopSidebarOpen]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -36,21 +60,31 @@ function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleMenuToggle = () => {
+    if (window.innerWidth <= 768) {
+      setMobileSidebarOpen(prev => !prev);
+    } else {
+      setDesktopSidebarOpen(prev => !prev);
+    }
+  };
+
   return (
     <div className="app-container">
       <Header
         theme={theme}
         onThemeToggle={toggleTheme}
-        onMenuToggle={() => setSidebarOpen(prev => !prev)}
+        onMenuToggle={handleMenuToggle}
+        isSidebarCollapsed={!desktopSidebarOpen}
       />
-      <div className="app-layout">
+      <div className={`app-layout ${!desktopSidebarOpen ? 'sidebar-collapsed' : ''}`}>
         {!isViewer && (
           <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
+            isOpen={mobileSidebarOpen}
+            isDesktopOpen={desktopSidebarOpen}
+            onClose={() => setMobileSidebarOpen(false)}
           />
         )}
-        <main className={`main-content ${isViewer ? 'full-width' : ''}`}>
+        <main className={`main-content ${isViewer ? 'full-width' : ''} ${!desktopSidebarOpen ? 'sidebar-collapsed' : ''}`}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/semester" element={<Semester />} />

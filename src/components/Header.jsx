@@ -4,7 +4,7 @@ import { BookOpen, LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Sear
 import SearchModal from './SearchModal';
 import './Header.css';
 
-const Header = ({ theme, onThemeToggle, onMenuToggle }) => {
+const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -22,7 +22,13 @@ const Header = ({ theme, onThemeToggle, onMenuToggle }) => {
     <>
       <header className="header">
         <div className="header-left">
-          <button className="btn-icon mobile-menu-btn" onClick={onMenuToggle} aria-label="Menu">
+          <button
+            type="button"
+            className="btn-icon menu-toggle-btn mobile-menu-btn"
+            onClick={onMenuToggle}
+            aria-label={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+            title={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+          >
             <Menu size={24} />
           </button>
           <NavLink to="/" className="header-logo">

@@ -116,17 +116,22 @@
   line-height: 1;
 }
 
-/* Hamburger menu (mobile) */
+/* Hamburger menu button (desktop & mobile) */
+.menu-toggle-btn,
 .mobile-menu-btn {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
   .header-nav {
     display: none;
   }
+  .menu-toggle-btn,
   .mobile-menu-btn {
-    display: flex;
+    display: inline-flex;
   }
   .search-shortcut {
     display: none;

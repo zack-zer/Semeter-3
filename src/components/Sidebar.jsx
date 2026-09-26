@@ -4,7 +4,7 @@ import { LayoutDashboard, GraduationCap, CheckSquare, StickyNote, X } from 'luci
 import { getAllSubjects } from '../storage/subjectStore';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
   const [subjects, setSubjects] = useState([]);
   const location = useLocation();
 
@@ -12,29 +12,36 @@ const Sidebar = ({ isOpen, onClose }) => {
     getAllSubjects().then(setSubjects).catch(console.error);
   }, [location]);
 
+  const handleLinkClick = () => {
+    // Only close mobile drawer on navigation if on mobile screen
+    if (window.innerWidth <= 768 && onClose) {
+      onClose();
+    }
+  };
+
   return (
     <>
       <div className={`sidebar-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'open' : ''} ${!isDesktopOpen ? 'collapsed' : ''}`}>
         <div className="sidebar-mobile-header">
           <span className="sidebar-title">Menu</span>
-          <button className="btn-icon" onClick={onClose}><X size={20} /></button>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close menu"><X size={20} /></button>
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink to="/" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} end onClick={onClose}>
+          <NavLink to="/" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} end onClick={handleLinkClick}>
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink to="/semester" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+          <NavLink to="/semester" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
             <GraduationCap size={18} />
             <span>Semester 3</span>
           </NavLink>
-          <NavLink to="/tasks" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+          <NavLink to="/tasks" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
             <CheckSquare size={18} />
             <span>Tasks</span>
           </NavLink>
-          <NavLink to="/notes" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+          <NavLink to="/notes" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
             <StickyNote size={18} />
             <span>Notes</span>
           </NavLink>
@@ -47,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <ul className="sidebar-subjects">
             {subjects.map(subject => (
               <li key={subject.id}>
-                <NavLink to={`/subject/${subject.id}`} className={({ isActive }) => `sidebar-link subject-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+                <NavLink to={`/subject/${subject.id}`} className={({ isActive }) => `sidebar-link subject-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
                   <span className="subject-icon">{subject.icon}</span>
                   <span className="subject-name">{subject.name}</span>
                 </NavLink>
