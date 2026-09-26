@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Link2, X } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Link2, X, LogOut } from 'lucide-react';
 import { getAllSubjects } from '../storage/subjectStore';
+import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
   const [subjects, setSubjects] = useState([]);
   const location = useLocation();
+  const { username, signOut } = useAuth();
 
   useEffect(() => {
     getAllSubjects().then(setSubjects).catch(console.error);
   }, [location]);
 
   const handleLinkClick = () => {
-    // Only close mobile drawer on navigation if on mobile screen
     if (window.innerWidth <= 768 && onClose) {
       onClose();
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm(`Log out of account "${username}"?`)) {
+      signOut();
     }
   };
 
@@ -25,7 +32,9 @@ const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
       <aside className={`sidebar ${isOpen ? 'open' : ''} ${!isDesktopOpen ? 'collapsed' : ''}`}>
         <div className="sidebar-mobile-header">
           <span className="sidebar-title">Menu</span>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close menu"><X size={20} /></button>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close menu">
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -56,9 +65,13 @@ const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
         <div className="sidebar-section">
           <h3 className="sidebar-section-title">Subjects</h3>
           <ul className="sidebar-subjects">
-            {subjects.map(subject => (
+            {subjects.map((subject) => (
               <li key={subject.id}>
-                <NavLink to={`/subject/${subject.id}`} className={({ isActive }) => `sidebar-link subject-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
+                <NavLink
+                  to={`/subject/${subject.id}`}
+                  className={({ isActive }) => `sidebar-link subject-link ${isActive ? 'active' : ''}`}
+                  onClick={handleLinkClick}
+                >
                   <span className="subject-icon">{subject.icon}</span>
                   <span className="subject-name">{subject.name}</span>
                 </NavLink>
@@ -69,6 +82,29 @@ const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
             )}
           </ul>
         </div>
+
+        {username && (
+          <div className="sidebar-footer-user">
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-avatar">
+                {username.charAt(0).toUpperCase()}
+              </span>
+              <div className="sidebar-user-meta">
+                <span className="sidebar-username">@{username}</span>
+                <span className="sidebar-user-status">Cloud Synced</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-icon sidebar-logout-btn"
+              onClick={handleLogout}
+              title="Log Out"
+              aria-label="Log Out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );

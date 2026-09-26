@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 
+/* --- Context & Auth --- */
+import { useAuth } from './context/AuthContext';
+import AuthPage from './pages/AuthPage';
+import MigrationModal from './components/MigrationModal';
+
 /* --- Page imports --- */
 import Dashboard from './pages/Dashboard';
 import Semester from './pages/Semester';
@@ -15,6 +20,8 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
   });
@@ -58,19 +65,36 @@ function App() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   const handleMenuToggle = () => {
     if (window.innerWidth <= 768) {
-      setMobileSidebarOpen(prev => !prev);
+      setMobileSidebarOpen((prev) => !prev);
     } else {
-      setDesktopSidebarOpen(prev => !prev);
+      setDesktopSidebarOpen((prev) => !prev);
     }
   };
 
+  // 1. Initial auth restoration loading state
+  if (loading) {
+    return (
+      <div className="app-loading-screen">
+        <div className="app-loading-spinner"></div>
+        <p className="app-loading-text">Loading StudyHub workspace...</p>
+      </div>
+    );
+  }
+
+  // 2. Full-page Auth screen if user is not authenticated
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
+  // 3. Authenticated App Layout
   return (
     <div className="app-container">
+      <MigrationModal />
       <Header
         theme={theme}
         onThemeToggle={toggleTheme}

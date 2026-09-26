@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Link2, Search, Sun, Moon, Menu } from 'lucide-react';
+import {
+  BookOpen,
+  LayoutDashboard,
+  GraduationCap,
+  CheckSquare,
+  StickyNote,
+  Link2,
+  Search,
+  Sun,
+  Moon,
+  Menu,
+  LogOut,
+  User,
+} from 'lucide-react';
 import SearchModal from './SearchModal';
+import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
 const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { username, signOut } = useAuth();
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -17,6 +32,12 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleLogout = () => {
+    if (window.confirm(`Log out of account "${username}"?`)) {
+      signOut();
+    }
+  };
 
   return (
     <>
@@ -65,13 +86,39 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
             <Search size={20} />
             <span className="search-shortcut">Ctrl+K</span>
           </button>
-          <button className="theme-toggle" onClick={onThemeToggle} aria-label="Toggle Theme" title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+
+          <button
+            className="theme-toggle"
+            onClick={onThemeToggle}
+            aria-label="Toggle Theme"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             <span className="theme-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
+
+          {username && (
+            <div className="header-user-menu">
+              <div className="header-user-badge" title={`Signed in as @${username}`}>
+                <span className="header-user-avatar">
+                  {username.charAt(0).toUpperCase()}
+                </span>
+                <span className="header-username">{username}</span>
+              </div>
+              <button
+                type="button"
+                className="btn-icon header-logout-btn"
+                onClick={handleLogout}
+                title="Log Out"
+                aria-label="Log Out"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          )}
         </div>
       </header>
-      
+
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
