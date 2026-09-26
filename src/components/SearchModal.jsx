@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, File as FileIcon, FolderOpen, CheckSquare, StickyNote, Book } from 'lucide-react';
+import { Search, File as FileIcon, FolderOpen, CheckSquare, StickyNote, Book, Link2, ExternalLink } from 'lucide-react';
 import { searchAll } from '../utils/searchUtils';
 import './SearchModal.css';
 
 const SearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState({ subjects: [], files: [], folders: [], tasks: [], notes: [] });
+  const [results, setResults] = useState({ subjects: [], files: [], folders: [], tasks: [], notes: [], links: [] });
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const SearchModal = ({ isOpen, onClose }) => {
       }, 100);
     } else {
       setQuery('');
-      setResults({ subjects: [], files: [], folders: [], tasks: [], notes: [] });
+      setResults({ subjects: [], files: [], folders: [], tasks: [], notes: [], links: [] });
     }
   }, [isOpen]);
 
@@ -38,7 +38,7 @@ const SearchModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults({ subjects: [], files: [], folders: [], tasks: [], notes: [] });
+      setResults({ subjects: [], files: [], folders: [], tasks: [], notes: [], links: [] });
       return;
     }
 
@@ -64,6 +64,11 @@ const SearchModal = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const handleOpenLink = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    onClose();
+  };
+
   const hasResults = Object.values(results).some(arr => arr.length > 0);
 
   return (
@@ -75,7 +80,7 @@ const SearchModal = ({ isOpen, onClose }) => {
             ref={inputRef}
             type="text"
             className="search-input"
-            placeholder="Search subjects, files, tasks, notes..."
+            placeholder="Search subjects, files, tasks, notes, links..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -151,6 +156,22 @@ const SearchModal = ({ isOpen, onClose }) => {
                     <div key={item.id} className="search-item" onClick={() => handleNavigate('/notes')}>
                       <StickyNote size={18} className="search-item-icon" />
                       <span className="search-item-text">{item.title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {results.links?.length > 0 && (
+                <div className="search-section">
+                  <h4 className="search-section-title">Links</h4>
+                  {results.links.map(item => (
+                    <div key={item.id} className="search-item" onClick={() => handleOpenLink(item.url)}>
+                      <Link2 size={18} className="search-item-icon" />
+                      <span className="search-item-text">{item.title}</span>
+                      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', opacity: 0.6 }}>
+                        <span>Open</span>
+                        <ExternalLink size={12} />
+                      </span>
                     </div>
                   ))}
                 </div>

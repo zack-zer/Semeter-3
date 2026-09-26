@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Search, Sun, Moon, Menu } from 'lucide-react';
+import { BookOpen, LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Link2, Search, Sun, Moon, Menu } from 'lucide-react';
 import SearchModal from './SearchModal';
 import './Header.css';
 
@@ -53,6 +53,10 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
           <NavLink to="/notes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <StickyNote size={20} />
             <span>Notes</span>
+          </NavLink>
+          <NavLink to="/links" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <Link2 size={20} />
+            <span>Links</span>
           </NavLink>
         </nav>
 

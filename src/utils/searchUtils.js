@@ -2,20 +2,22 @@ import { getAllSubjects } from '../storage/subjectStore';
 import { getAllFiles, getAllFolders } from '../storage/fileStore';
 import { getAllTasks } from '../storage/taskStore';
 import { getAllNotes } from '../storage/noteStore';
+import { getAllLinks } from '../storage/linkStore';
 
 export async function searchAll(query) {
   if (!query || query.trim().length === 0) {
-    return { subjects: [], files: [], folders: [], tasks: [], notes: [] };
+    return { subjects: [], files: [], folders: [], tasks: [], notes: [], links: [] };
   }
 
   const q = query.toLowerCase().trim();
   
-  const [subjects, files, folders, tasks, notes] = await Promise.all([
+  const [subjects, files, folders, tasks, notes, links] = await Promise.all([
     getAllSubjects(),
     getAllFiles(),
     getAllFolders(),
     getAllTasks(),
     getAllNotes(),
+    getAllLinks(),
   ]);
 
   return {
@@ -29,6 +31,12 @@ export async function searchAll(query) {
     notes: notes.filter(n => 
       n.title.toLowerCase().includes(q) || 
       (n.content && n.content.toLowerCase().includes(q))
+    ),
+    links: links.filter(l => 
+      l.title.toLowerCase().includes(q) || 
+      l.url.toLowerCase().includes(q) ||
+      (l.category && l.category.toLowerCase().includes(q)) ||
+      (l.description && l.description.toLowerCase().includes(q))
     ),
   };
 }

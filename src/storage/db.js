@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'StudyHubDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -35,6 +35,10 @@ export async function getDB() {
       // Progress store - tracks reading position per file
       if (!db.objectStoreNames.contains('progress')) {
         db.createObjectStore('progress', { keyPath: 'fileId' });
+      }
+      // Links store
+      if (!db.objectStoreNames.contains('links')) {
+        db.createObjectStore('links', { keyPath: 'id' });
       }
     },
   });

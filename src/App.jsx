@@ -8,6 +8,7 @@ import Subject from './pages/Subject';
 import FileViewer from './pages/FileViewer';
 import Tasks from './pages/Tasks';
 import Notes from './pages/Notes';
+import Links from './pages/Links';
 
 /* --- Component imports --- */
 import Header from './components/Header';
@@ -93,6 +94,7 @@ function App() {
             <Route path="/viewer/:fileId" element={<FileViewer />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/notes" element={<Notes />} />
+            <Route path="/links" element={<Links />} />
           </Routes>
         </main>
       </div>

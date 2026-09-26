@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, CheckSquare, StickyNote, X } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, CheckSquare, StickyNote, Link2, X } from 'lucide-react';
 import { getAllSubjects } from '../storage/subjectStore';
 import './Sidebar.css';
 
@@ -44,6 +44,10 @@ const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
           <NavLink to="/notes" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
             <StickyNote size={18} />
             <span>Notes</span>
+          </NavLink>
+          <NavLink to="/links" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={handleLinkClick}>
+            <Link2 size={18} />
+            <span>Links</span>
           </NavLink>
         </nav>
 
