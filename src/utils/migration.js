@@ -62,7 +62,7 @@ export async function migrateLocalDataToCloud(user, onProgress) {
     for (const sub of data.subjects) {
       await supabase.from('subjects').upsert({
         id: sub.id,
-        user_id: user.id,
+        workspace_id: user.id,
         name: sub.name,
         icon: sub.icon || '📚',
         color: sub.color || null,
@@ -82,7 +82,7 @@ export async function migrateLocalDataToCloud(user, onProgress) {
     for (const fld of folders) {
       await supabase.from('folders').upsert({
         id: fld.id,
-        user_id: user.id,
+        workspace_id: user.id,
         subject_id: fld.subjectId,
         parent_id: fld.parentId || null,
         name: fld.name,
@@ -108,7 +108,7 @@ export async function migrateLocalDataToCloud(user, onProgress) {
 
       await supabase.from('files').upsert({
         id: file.id,
-        user_id: user.id,
+        workspace_id: user.id,
         subject_id: file.subjectId,
         folder_id: file.folderId || null,
         name: file.name,
@@ -129,7 +129,7 @@ export async function migrateLocalDataToCloud(user, onProgress) {
     for (const task of data.tasks) {
       await supabase.from('tasks').upsert({
         id: task.id,
-        user_id: user.id,
+        workspace_id: user.id,
         title: task.title,
         description: task.description || '',
         subject_id: task.subjectId || null,
@@ -147,7 +147,7 @@ export async function migrateLocalDataToCloud(user, onProgress) {
     for (const note of data.notes) {
       await supabase.from('notes').upsert({
         id: note.id,
-        user_id: user.id,
+        workspace_id: user.id,
         title: note.title,
         content: note.content || '',
         subject_id: note.subjectId || null,

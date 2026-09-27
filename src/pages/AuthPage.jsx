@@ -3,27 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import './AuthPage.css';
 
 export default function AuthPage() {
-  const {
-    signIn,
-    signUp,
-    isConfigured,
-    configSource,
-    supabaseUrl,
-    connectSupabase,
-    disconnectSupabase,
-  } = useAuth();
-
-  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
+  const { enterWorkspace } = useAuth();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Connect Supabase modal/drawer state
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [customUrl, setCustomUrl] = useState(supabaseUrl || '');
-  const [customKey, setCustomKey] = useState('');
-  const [connectError, setConnectError] = useState('');
-  const [connectSuccess, setConnectSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,42 +19,18 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      if (mode === 'signin') {
-        await signIn(username);
-      } else {
-        await signUp(username);
-      }
+      await enterWorkspace(username);
     } catch (err) {
-      console.error('[StudyHub] Auth error:', err);
-      setError(err.message || 'An error occurred during authentication.');
+      console.error('[StudyHub] Workspace entry error:', err);
+      setError(err.message || 'Unable to enter workspace. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTabChange = (newMode) => {
-    setMode(newMode);
-    setError('');
-  };
-
-  const handleSaveConnection = async (e) => {
-    e.preventDefault();
-    setConnectError('');
-    try {
-      await connectSupabase(customUrl, customKey);
-      setConnectSuccess(true);
-      setTimeout(() => {
-        setConnectSuccess(false);
-        setShowConnectModal(false);
-      }, 1200);
-    } catch (err) {
-      setConnectError(err.message || 'Failed to connect. Please check the URL and Anon Key.');
-    }
-  };
-
   return (
     <div className="auth-container">
-      {/* Ambient background glow */}
+      {/* Ambient background lighting */}
       <div className="auth-glow-orb auth-glow-1"></div>
       <div className="auth-glow-orb auth-glow-2"></div>
 
@@ -98,90 +57,8 @@ export default function AuthPage() {
           <p className="auth-brand-subtitle">Semester 3 Digital Learning Workspace</p>
         </div>
 
-        {/* Clear Cloud Mode Status Indicator */}
-        <div className="auth-mode-indicator">
-          {isConfigured ? (
-            <div className="mode-badge mode-active">
-              <span className="mode-dot"></span>
-              <span className="mode-title">Cloud Persistence: Active</span>
-              <span className="mode-source">({configSource === 'environment' ? 'Vercel / .env' : 'Connected'})</span>
-              {configSource === 'manual' && (
-                <button
-                  type="button"
-                  className="mode-btn-reset"
-                  onClick={disconnectSupabase}
-                  title="Disconnect manual credentials"
-                >
-                  Disconnect
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="mode-badge mode-local">
-              <span className="mode-dot"></span>
-              <span className="mode-title">Local Demo Mode (Cloud Sync Inactive)</span>
-              <button
-                type="button"
-                className="mode-btn-connect"
-                onClick={() => setShowConnectModal(true)}
-              >
-                Connect Supabase
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Warning if running in local mode */}
-        {!isConfigured && (
-          <div className="auth-notice-banner">
-            <span className="notice-icon">⚠️</span>
-            <div className="notice-text">
-              <strong>Multi-device sync is offline:</strong> Add <code>VITE_SUPABASE_URL</code> & <code>VITE_SUPABASE_ANON_KEY</code> to Vercel or click{' '}
-              <button
-                type="button"
-                className="link-inline-btn"
-                onClick={() => setShowConnectModal(true)}
-              >
-                Connect Supabase
-              </button>{' '}
-              to link your cloud backend.
-            </div>
-          </div>
-        )}
-
-        {/* Auth Mode Tabs */}
-        <div className="auth-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'signin'}
-            className={`auth-tab ${mode === 'signin' ? 'active' : ''}`}
-            onClick={() => handleTabChange('signin')}
-            id="tab-signin"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'signup'}
-            className={`auth-tab ${mode === 'signup' ? 'active' : ''}`}
-            onClick={() => handleTabChange('signup')}
-            id="tab-signup"
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Dynamic instructions */}
         <p className="auth-instructions">
-          {mode === 'signin'
-            ? isConfigured
-              ? 'Enter your username to access your cloud-synced study workspace.'
-              : 'Enter your username to access your local workspace.'
-            : isConfigured
-              ? 'Choose a unique username to start your remote cloud workspace.'
-              : 'Enter a username to continue in local demo mode (no password required).'}
+          Enter your username to open or create your cloud study workspace. No password required.
         </p>
 
         {/* Error Alert */}
@@ -202,7 +79,7 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* Form */}
+        {/* Single Username-Only Form */}
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="auth-input-group">
             <label htmlFor="auth-username" className="auth-label">
@@ -214,7 +91,7 @@ export default function AuthPage() {
                 id="auth-username"
                 type="text"
                 className="auth-input"
-                placeholder="e.g. Zakaria"
+                placeholder="e.g. zackk"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus
@@ -224,7 +101,7 @@ export default function AuthPage() {
               />
             </div>
             <span className="auth-input-hint">
-              Case-insensitive (e.g. &quot;Zakaria&quot; and &quot;zakaria&quot; access the same account).
+              Case-insensitive: &quot;zackk&quot;, &quot;Zackk&quot;, and &quot;ZACKK&quot; access the same workspace.
             </span>
           </div>
 
@@ -237,12 +114,10 @@ export default function AuthPage() {
             {loading ? (
               <span className="auth-spinner-container">
                 <span className="auth-spinner"></span>
-                <span>{mode === 'signin' ? 'Signing In...' : 'Creating Account...'}</span>
+                <span>Opening Workspace...</span>
               </span>
-            ) : mode === 'signin' ? (
-              'Sign In to Workspace'
             ) : (
-              'Create My Account'
+              'Enter StudyHub'
             )}
           </button>
         </form>
@@ -272,85 +147,6 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
-
-      {/* Connect Supabase Modal */}
-      {showConnectModal && (
-        <div className="auth-modal-overlay" onClick={() => setShowConnectModal(false)}>
-          <div className="auth-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="auth-modal-header">
-              <div className="auth-modal-title-group">
-                <span className="auth-modal-badge">⚡</span>
-                <h2 className="auth-modal-title">Connect Supabase Backend</h2>
-              </div>
-              <button
-                type="button"
-                className="auth-modal-close"
-                onClick={() => setShowConnectModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="auth-modal-desc">
-              To synchronize your accounts, PDFs, and reading progress across all devices (phone, laptop, desktop), enter your Supabase project credentials below.
-            </p>
-
-            <form onSubmit={handleSaveConnection} className="auth-modal-form">
-              <div className="auth-input-group">
-                <label className="auth-label">Project URL</label>
-                <input
-                  type="url"
-                  className="auth-input"
-                  placeholder="https://your-project.supabase.co"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="auth-input-group">
-                <label className="auth-label">Anon / Public API Key</label>
-                <input
-                  type="password"
-                  className="auth-input"
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
-                  value={customKey}
-                  onChange={(e) => setCustomKey(e.target.value)}
-                  required
-                />
-                <span className="auth-input-hint">
-                  Found in your Supabase Dashboard under <strong>Project Settings &gt; API</strong>.
-                </span>
-              </div>
-
-              {connectError && (
-                <div className="auth-error-box">
-                  <span>{connectError}</span>
-                </div>
-              )}
-
-              {connectSuccess && (
-                <div className="auth-success-box">
-                  <span>✓ Connected successfully to Supabase!</span>
-                </div>
-              )}
-
-              <div className="auth-modal-actions">
-                <button
-                  type="button"
-                  className="btn-modal-cancel"
-                  onClick={() => setShowConnectModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-modal-save">
-                  Connect &amp; Enable Cloud Sync
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

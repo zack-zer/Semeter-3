@@ -1,141 +1,77 @@
 -- ==============================================================================
--- STUDYHUB / SEMESTRE 3 - COMPLETE SUPABASE DATABASE SCHEMA & POLICIES
+-- STUDYHUB / SEMESTRE 3 - COMPLETE SUPABASE DATABASE SCHEMA
+-- USERNAME-ONLY CLOUD WORKSPACE ARCHITECTURE
 -- ==============================================================================
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. PROFILES TABLE (Stores username and normalized case-insensitive username)
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+-- 2. WORKSPACES TABLE
+-- Maps each unique username to a dedicated persistent cloud workspace
+CREATE TABLE IF NOT EXISTS public.workspaces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT NOT NULL,
     username_normalized TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_workspaces_normalized ON public.workspaces(username_normalized);
 
-CREATE POLICY "Users can view profiles"
-    ON public.profiles FOR SELECT
-    USING (true);
+-- Enable RLS and grant read/write access for workspace operations
+ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can insert their own profile"
-    ON public.profiles FOR INSERT
-    WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile"
-    ON public.profiles FOR UPDATE
-    USING (auth.uid() = id);
-
--- Triggers for Auth: Automatically confirm passwordless username accounts
--- and create profile record upon user signup
-CREATE OR REPLACE FUNCTION public.auto_confirm_internal_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.email LIKE '%@studyhub.internal' THEN
-    NEW.email_confirmed_at = COALESCE(NEW.email_confirmed_at, NOW());
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS trigger_auto_confirm_internal_user ON auth.users;
-CREATE TRIGGER trigger_auto_confirm_internal_user
-  BEFORE INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.auto_confirm_internal_user();
-
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, username, username_normalized)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'username_normalized', lower(split_part(NEW.email, '@', 1)))
-  )
-  ON CONFLICT (id) DO UPDATE
-  SET
-    username = EXCLUDED.username,
-    username_normalized = EXCLUDED.username_normalized,
-    updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+CREATE POLICY "Allow public access to workspaces"
+    ON public.workspaces FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 3. SUBJECTS TABLE
 CREATE TABLE IF NOT EXISTS public.subjects (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    icon TEXT,
+    icon TEXT DEFAULT '📚',
     color TEXT,
-    semester TEXT,
+    semester TEXT DEFAULT 'Semester 3',
     module_type TEXT,
     code TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_subjects_user_id ON public.subjects(user_id);
+CREATE INDEX IF NOT EXISTS idx_subjects_workspace_id ON public.subjects(workspace_id);
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own subjects"
-    ON public.subjects FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own subjects"
-    ON public.subjects FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own subjects"
-    ON public.subjects FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own subjects"
-    ON public.subjects FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to subjects"
+    ON public.subjects FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 4. FOLDERS TABLE
 CREATE TABLE IF NOT EXISTS public.folders (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     subject_id TEXT NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
     parent_id TEXT REFERENCES public.folders(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_folders_user_subject ON public.folders(user_id, subject_id);
+CREATE INDEX IF NOT EXISTS idx_folders_workspace_id ON public.folders(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_folders_subject_id ON public.folders(subject_id);
 CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON public.folders(parent_id);
 ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own folders"
-    ON public.folders FOR SELECT
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to folders"
+    ON public.folders FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
-CREATE POLICY "Users can insert their own folders"
-    ON public.folders FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own folders"
-    ON public.folders FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own folders"
-    ON public.folders FOR DELETE
-    USING (auth.uid() = user_id);
-
--- 5. FILES TABLE (Metadata for PDFs, documents, images)
+-- 5. FILES TABLE (PDFs, documents, images)
 CREATE TABLE IF NOT EXISTS public.files (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     subject_id TEXT NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
     folder_id TEXT REFERENCES public.folders(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -146,63 +82,41 @@ CREATE TABLE IF NOT EXISTS public.files (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_files_user_id ON public.files(user_id);
+CREATE INDEX IF NOT EXISTS idx_files_workspace_id ON public.files(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_files_subject_id ON public.files(subject_id);
 CREATE INDEX IF NOT EXISTS idx_files_folder_id ON public.files(folder_id);
 ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own files"
-    ON public.files FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own files"
-    ON public.files FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own files"
-    ON public.files FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own files"
-    ON public.files FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to files"
+    ON public.files FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 6. READING PROGRESS TABLE (Syncs PDF reading position across all devices)
 CREATE TABLE IF NOT EXISTS public.reading_progress (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     file_id TEXT NOT NULL REFERENCES public.files(id) ON DELETE CASCADE,
     current_page INT NOT NULL DEFAULT 1,
     total_pages INT NOT NULL DEFAULT 1,
     scroll_top DOUBLE PRECISION DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_user_file_progress UNIQUE (user_id, file_id)
+    CONSTRAINT unique_workspace_file_progress UNIQUE (workspace_id, file_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_reading_progress_user ON public.reading_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_reading_progress_workspace ON public.reading_progress(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_reading_progress_file ON public.reading_progress(file_id);
 ALTER TABLE public.reading_progress ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own reading progress"
-    ON public.reading_progress FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own reading progress"
-    ON public.reading_progress FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own reading progress"
-    ON public.reading_progress FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own reading progress"
-    ON public.reading_progress FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to reading progress"
+    ON public.reading_progress FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 7. TASKS TABLE
 CREATE TABLE IF NOT EXISTS public.tasks (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
     subject_id TEXT REFERENCES public.subjects(id) ON DELETE CASCADE,
@@ -211,30 +125,19 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON public.tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_workspace_id ON public.tasks(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_subject_id ON public.tasks(subject_id);
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own tasks"
-    ON public.tasks FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own tasks"
-    ON public.tasks FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own tasks"
-    ON public.tasks FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own tasks"
-    ON public.tasks FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to tasks"
+    ON public.tasks FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 8. NOTES TABLE
 CREATE TABLE IF NOT EXISTS public.notes (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     content TEXT,
     subject_id TEXT REFERENCES public.subjects(id) ON DELETE CASCADE,
@@ -242,30 +145,19 @@ CREATE TABLE IF NOT EXISTS public.notes (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_workspace_id ON public.notes(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_notes_subject_id ON public.notes(subject_id);
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own notes"
-    ON public.notes FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own notes"
-    ON public.notes FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own notes"
-    ON public.notes FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own notes"
-    ON public.notes FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to notes"
+    ON public.notes FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 9. LINKS TABLE
 CREATE TABLE IF NOT EXISTS public.links (
     id TEXT PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     url TEXT NOT NULL,
     category TEXT,
@@ -274,59 +166,44 @@ CREATE TABLE IF NOT EXISTS public.links (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_links_user_id ON public.links(user_id);
+CREATE INDEX IF NOT EXISTS idx_links_workspace_id ON public.links(workspace_id);
 ALTER TABLE public.links ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own links"
-    ON public.links FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own links"
-    ON public.links FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own links"
-    ON public.links FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own links"
-    ON public.links FOR DELETE
-    USING (auth.uid() = user_id);
+CREATE POLICY "Allow public access to links"
+    ON public.links FOR ALL
+    USING (true)
+    WITH CHECK (true);
 
 -- 10. STORAGE BUCKET CONFIGURATION (study-files)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('study-files', 'study-files', false)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('study-files', 'study-files', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage RLS Policies
-CREATE POLICY "Users can upload study files into their folder"
+-- Storage policies allowing upload, read, update, delete for study-files
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public uploads to study-files" ON storage.objects;
+    DROP POLICY IF EXISTS "Allow public reads from study-files" ON storage.objects;
+    DROP POLICY IF EXISTS "Allow public updates in study-files" ON storage.objects;
+    DROP POLICY IF EXISTS "Allow public deletes in study-files" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can upload study files into their folder" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can view and download their own study files" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can update their own study files" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can delete their own study files" ON storage.objects;
+END $$;
+
+CREATE POLICY "Allow public uploads to study-files"
     ON storage.objects FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        bucket_id = 'study-files' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+    WITH CHECK (bucket_id = 'study-files');
 
-CREATE POLICY "Users can view and download their own study files"
+CREATE POLICY "Allow public reads from study-files"
     ON storage.objects FOR SELECT
-    TO authenticated
-    USING (
-        bucket_id = 'study-files' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+    USING (bucket_id = 'study-files');
 
-CREATE POLICY "Users can update their own study files"
+CREATE POLICY "Allow public updates in study-files"
     ON storage.objects FOR UPDATE
-    TO authenticated
-    USING (
-        bucket_id = 'study-files' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+    USING (bucket_id = 'study-files');
 
-CREATE POLICY "Users can delete their own study files"
+CREATE POLICY "Allow public deletes in study-files"
     ON storage.objects FOR DELETE
-    TO authenticated
-    USING (
-        bucket_id = 'study-files' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+    USING (bucket_id = 'study-files');

@@ -11,6 +11,7 @@ export async function getAllSubjects() {
     const { data, error } = await supabase
       .from('subjects')
       .select('*')
+      .eq('workspace_id', user.id)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -21,7 +22,7 @@ export async function getAllSubjects() {
     return (data || []).map((row) => ({
       id: row.id,
       name: row.name,
-      icon: row.icon,
+      icon: row.icon || '📚',
       color: row.color,
       semester: row.semester,
       moduleType: row.module_type,
@@ -44,6 +45,7 @@ export async function getSubjectById(id) {
       .from('subjects')
       .select('*')
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -55,7 +57,7 @@ export async function getSubjectById(id) {
     return {
       id: data.id,
       name: data.name,
-      icon: data.icon,
+      icon: data.icon || '📚',
       color: data.color,
       semester: data.semester,
       moduleType: data.module_type,
@@ -78,7 +80,7 @@ export async function addSubject(name, icon, extra = {}) {
   if (user && isSupabaseConfigured) {
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       name,
       icon: icon || '📚',
       color: extra.color || null,
@@ -103,7 +105,7 @@ export async function addSubject(name, icon, extra = {}) {
     return {
       id: data.id,
       name: data.name,
-      icon: data.icon,
+      icon: data.icon || '📚',
       color: data.color,
       semester: data.semester,
       moduleType: data.module_type,
@@ -118,7 +120,7 @@ export async function addSubject(name, icon, extra = {}) {
   const subject = {
     id,
     name,
-    icon,
+    icon: icon || '📚',
     createdAt: now,
     ...extra,
   };
@@ -143,6 +145,7 @@ export async function updateSubject(id, updates) {
       .from('subjects')
       .update(dbUpdates)
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -154,7 +157,7 @@ export async function updateSubject(id, updates) {
     return {
       id: data.id,
       name: data.name,
-      icon: data.icon,
+      icon: data.icon || '📚',
       color: data.color,
       semester: data.semester,
       moduleType: data.module_type,
@@ -181,7 +184,8 @@ export async function deleteSubject(id) {
     const { data: files } = await supabase
       .from('files')
       .select('id')
-      .eq('subject_id', id);
+      .eq('subject_id', id)
+      .eq('workspace_id', user.id);
 
     if (files && files.length > 0) {
       await Promise.all(files.map((f) => deleteFile(f.id)));
@@ -190,7 +194,8 @@ export async function deleteSubject(id) {
     const { error } = await supabase
       .from('subjects')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('workspace_id', user.id);
 
     if (error) {
       console.error('[StudyHub] Error deleting subject:', error);

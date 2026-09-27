@@ -87,6 +87,7 @@ export async function getAllLinks() {
       const { data, error } = await supabase
         .from('links')
         .select('*')
+        .eq('workspace_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -95,10 +96,10 @@ export async function getAllLinks() {
       }
 
       if (!data || data.length === 0) {
-        // Seed default links for this new user in Supabase
+        // Seed default links for this new workspace
         const initialRecords = DEFAULT_STUDY_LINKS.map((l) => ({
           id: `${user.id}_${l.id}`,
-          user_id: user.id,
+          workspace_id: user.id,
           title: l.title,
           url: l.url,
           category: l.category,
@@ -125,7 +126,7 @@ export async function getAllLinks() {
     }
   }
 
-  // Fallback to local IndexedDB / localStorage
+  // Fallback to local
   try {
     const db = await getDB();
     let links = await db.getAll('links');
@@ -147,7 +148,6 @@ export async function getAllLinks() {
 
     return links.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } catch (err) {
-    console.warn('IndexedDB unavailable for links, using localStorage fallback', err);
     let local = getLocalLinks();
     if (!local) {
       local = [...DEFAULT_STUDY_LINKS];
@@ -170,7 +170,7 @@ export async function addLink({ title, url, category = 'General', description = 
   if (user && isSupabaseConfigured) {
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       title: cleanTitle,
       url: cleanUrl,
       category: cleanCategory,
@@ -249,6 +249,7 @@ export async function updateLink(id, updates) {
       .from('links')
       .update(dbUpdates)
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -296,7 +297,12 @@ export async function deleteLink(id) {
   const user = await getCurrentUser();
 
   if (user && isSupabaseConfigured) {
-    const { error } = await supabase.from('links').delete().eq('id', id);
+    const { error } = await supabase
+      .from('links')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', user.id);
+
     if (error) {
       console.error('[StudyHub] Error deleting link:', error);
       throw error;
@@ -304,7 +310,6 @@ export async function deleteLink(id) {
     return;
   }
 
-  // Fallback to local
   try {
     const db = await getDB();
     await db.delete('links', id);

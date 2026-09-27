@@ -4,7 +4,7 @@ import { clearProgress } from './progressStore';
 import { supabase, isSupabaseConfigured, getCurrentUser } from './supabaseClient';
 
 const BUCKET_NAME = 'study-files';
-// Ephemeral in-memory blob cache to prevent redundant remote re-downloads
+// In-memory cache for downloaded file blobs to avoid redundant network hits
 const fileBlobCache = new Map();
 
 /**
@@ -20,6 +20,7 @@ export async function getFilesInFolder(subjectId, folderId = null) {
     let query = supabase
       .from('files')
       .select('id, name, type, size, subject_id, folder_id, storage_path, created_at, updated_at')
+      .eq('workspace_id', user.id)
       .eq('subject_id', subjectId);
 
     if (folderId) {
@@ -63,6 +64,7 @@ export async function getFoldersInFolder(subjectId, parentId = null) {
     let query = supabase
       .from('folders')
       .select('id, name, subject_id, parent_id, created_at')
+      .eq('workspace_id', user.id)
       .eq('subject_id', subjectId);
 
     if (parentId) {
@@ -126,7 +128,7 @@ export async function addFile(fileData, subjectId, folderId = null) {
     // 2. Insert metadata record in public.files table
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       subject_id: subjectId,
       folder_id: folderId || null,
       name: fileData.name,
@@ -145,7 +147,6 @@ export async function addFile(fileData, subjectId, folderId = null) {
 
     if (dbError) {
       console.error('[StudyHub] Error saving file metadata:', dbError);
-      // Clean up uploaded file if metadata insertion fails
       await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
       throw dbError;
     }
@@ -185,7 +186,7 @@ export async function addFolder(name, subjectId, parentId = null) {
   if (user && isSupabaseConfigured) {
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       subject_id: subjectId,
       parent_id: parentId || null,
       name,
@@ -232,6 +233,7 @@ export async function renameFile(id, newName) {
       .from('files')
       .update({ name: newName, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -270,6 +272,7 @@ export async function renameFolder(id, newName) {
       .from('folders')
       .update({ name: newName })
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -308,13 +311,19 @@ export async function deleteFile(id) {
       .from('files')
       .select('storage_path')
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .maybeSingle();
 
     if (file?.storage_path) {
       await supabase.storage.from(BUCKET_NAME).remove([file.storage_path]);
     }
 
-    await supabase.from('files').delete().eq('id', id);
+    await supabase
+      .from('files')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', user.id);
+
     await clearProgress(id);
     return;
   }
@@ -329,11 +338,11 @@ export async function deleteFolder(id) {
   const user = await getCurrentUser();
 
   if (user && isSupabaseConfigured) {
-    // 1. Find all child folders recursively
     const { data: subFolders } = await supabase
       .from('folders')
       .select('id')
-      .eq('parent_id', id);
+      .eq('parent_id', id)
+      .eq('workspace_id', user.id);
 
     if (subFolders && subFolders.length > 0) {
       for (const sf of subFolders) {
@@ -341,11 +350,11 @@ export async function deleteFolder(id) {
       }
     }
 
-    // 2. Find and delete all files in this folder
     const { data: files } = await supabase
       .from('files')
       .select('id')
-      .eq('folder_id', id);
+      .eq('folder_id', id)
+      .eq('workspace_id', user.id);
 
     if (files && files.length > 0) {
       for (const f of files) {
@@ -353,8 +362,11 @@ export async function deleteFolder(id) {
       }
     }
 
-    // 3. Delete folder row
-    await supabase.from('folders').delete().eq('id', id);
+    await supabase
+      .from('folders')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', user.id);
     return;
   }
 
@@ -383,6 +395,7 @@ export async function moveFile(id, newFolderId) {
       .from('files')
       .update({ folder_id: newFolderId || null, updated_at: new Date().toISOString() })
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -421,6 +434,7 @@ export async function moveFolder(id, newParentId) {
       .from('folders')
       .update({ parent_id: newParentId || null })
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -456,6 +470,7 @@ export async function getFileById(id) {
       .from('files')
       .select('*')
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .maybeSingle();
 
     if (error) {
@@ -467,7 +482,6 @@ export async function getFileById(id) {
     // Check blob cache first
     let blob = fileBlobCache.get(id);
     if (!blob) {
-      // Download binary from Supabase Storage
       const { data: downloadedBlob, error: downloadError } = await supabase.storage
         .from(BUCKET_NAME)
         .download(fileRow.storage_path);
@@ -505,6 +519,7 @@ export async function getFileCountForSubject(subjectId) {
     const { count, error } = await supabase
       .from('files')
       .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', user.id)
       .eq('subject_id', subjectId);
 
     if (error) {
@@ -532,6 +547,7 @@ export async function getFolderPath(folderId) {
         .from('folders')
         .select('id, name, parent_id')
         .eq('id', currentId)
+        .eq('workspace_id', user.id)
         .maybeSingle();
 
       if (!folder) break;
@@ -562,6 +578,7 @@ export async function getAllFiles() {
     const { data, error } = await supabase
       .from('files')
       .select('id, name, type, size, subject_id, folder_id, storage_path, created_at, updated_at')
+      .eq('workspace_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -597,6 +614,7 @@ export async function getAllFolders() {
     const { data, error } = await supabase
       .from('folders')
       .select('id, name, subject_id, parent_id, created_at')
+      .eq('workspace_id', user.id)
       .order('created_at', { ascending: true });
 
     if (error) {

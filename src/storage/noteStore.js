@@ -8,6 +8,7 @@ export async function getAllNotes() {
     const { data, error } = await supabase
       .from('notes')
       .select('*')
+      .eq('workspace_id', user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -37,6 +38,7 @@ export async function getNotesBySubject(subjectId) {
     const { data, error } = await supabase
       .from('notes')
       .select('*')
+      .eq('workspace_id', user.id)
       .eq('subject_id', subjectId)
       .order('updated_at', { ascending: false });
 
@@ -69,7 +71,7 @@ export async function addNote({ title, content, subjectId }) {
   if (user && isSupabaseConfigured) {
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       title: title || 'Untitled Note',
       content: content || '',
       subject_id: subjectId || null,
@@ -126,6 +128,7 @@ export async function updateNote(id, updates) {
       .from('notes')
       .update(dbUpdates)
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -158,7 +161,12 @@ export async function deleteNote(id) {
   const user = await getCurrentUser();
 
   if (user && isSupabaseConfigured) {
-    const { error } = await supabase.from('notes').delete().eq('id', id);
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', user.id);
+
     if (error) {
       console.error('[StudyHub] Error deleting note:', error);
       throw error;

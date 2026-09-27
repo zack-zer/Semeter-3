@@ -1,9 +1,7 @@
 import { getDB } from './db';
 import { supabase, isSupabaseConfigured, getCurrentUser } from './supabaseClient';
 
-// Debounce timer registry for reading position saves
 const debounceTimers = new Map();
-// Local cache for immediate synchronous retrieval
 const progressCache = new Map();
 
 export async function getProgress(fileId) {
@@ -17,6 +15,7 @@ export async function getProgress(fileId) {
       const { data, error } = await supabase
         .from('reading_progress')
         .select('*')
+        .eq('workspace_id', user.id)
         .eq('file_id', fileId)
         .maybeSingle();
 
@@ -46,8 +45,7 @@ export async function getProgress(fileId) {
 }
 
 /**
- * Saves reading progress with remote debouncing (600ms) to avoid spamming the backend
- * during continuous scrolling or page flipping.
+ * Saves reading progress with remote debouncing (600ms) to ensure smooth scrolling
  */
 export async function saveProgress(fileId, currentPage, totalPages, scrollTop = 0) {
   const now = new Date().toISOString();
@@ -59,20 +57,15 @@ export async function saveProgress(fileId, currentPage, totalPages, scrollTop = 
     lastOpened: now,
   };
 
-  // Immediate local cache update
   progressCache.set(fileId, record);
-
-  // Update local IndexedDB in background
   getDB().then((db) => db.put('progress', record)).catch(() => {});
 
   const user = await getCurrentUser();
   if (user && isSupabaseConfigured) {
-    // Clear any existing pending timer for this file
     if (debounceTimers.has(fileId)) {
       clearTimeout(debounceTimers.get(fileId));
     }
 
-    // Set debounced remote upsert
     const timer = setTimeout(async () => {
       debounceTimers.delete(fileId);
       try {
@@ -81,14 +74,14 @@ export async function saveProgress(fileId, currentPage, totalPages, scrollTop = 
           .upsert(
             {
               id: `${user.id}_${fileId}`,
-              user_id: user.id,
+              workspace_id: user.id,
               file_id: fileId,
               current_page: currentPage,
               total_pages: totalPages,
               scroll_top: scrollTop,
               updated_at: now,
             },
-            { onConflict: 'user_id,file_id' }
+            { onConflict: 'workspace_id,file_id' }
           );
       } catch (err) {
         console.error('[StudyHub] Failed to sync reading progress to cloud:', err);
@@ -108,6 +101,7 @@ export async function getRecentFiles(limit = 4) {
       const { data, error } = await supabase
         .from('reading_progress')
         .select('*')
+        .eq('workspace_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(limit);
 
@@ -141,7 +135,11 @@ export async function clearProgress(fileId) {
   const user = await getCurrentUser();
   if (user && isSupabaseConfigured) {
     try {
-      await supabase.from('reading_progress').delete().eq('file_id', fileId);
+      await supabase
+        .from('reading_progress')
+        .delete()
+        .eq('workspace_id', user.id)
+        .eq('file_id', fileId);
     } catch (err) {
       console.error('[StudyHub] Error clearing reading progress from cloud:', err);
     }

@@ -4,7 +4,7 @@ const safeEnv = (typeof import.meta !== 'undefined' && import.meta.env)
   ? import.meta.env
   : (typeof process !== 'undefined' && process.env ? process.env : {});
 
-const authSalt = safeEnv.VITE_AUTH_SALT || 'studyhub_auth_salt_semester3_secure';
+const WORKSPACE_STORAGE_KEY = 'studyhub_active_workspace';
 
 function getSafeStorage() {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -33,7 +33,6 @@ export function getSupabaseConfig() {
   } catch (e) {
     // ignore in environments without localStorage
   }
-
 
   const isEnvValid = Boolean(
     envUrl &&
@@ -70,12 +69,11 @@ export function getSupabaseConfig() {
     url: activeUrl,
     anonKey: activeKey,
     isConfigured,
-    source, // 'environment' | 'manual' | 'none'
+    source,
   };
 }
 
 let activeClient = null;
-
 export let isSupabaseConfigured = false;
 
 function buildClient() {
@@ -85,28 +83,12 @@ function buildClient() {
   if (!isConfigured) {
     activeClient = createClient(
       'https://placeholder.supabase.co',
-      'placeholder-anon-key',
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          storage: getSafeStorage(),
-        },
-      }
+      'placeholder-anon-key'
     );
     return activeClient;
   }
 
-  activeClient = createClient(url, anonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storage: getSafeStorage(),
-    },
-  });
-
+  activeClient = createClient(url, anonKey);
   return activeClient;
 }
 
@@ -124,41 +106,9 @@ export const supabase = new Proxy({}, {
   }
 });
 
-
-/**
- * Saves custom Supabase configuration to localStorage (useful for instant testing or when Vercel envs are not yet rebuilt)
- */
-export function saveCustomSupabaseConfig(rawUrl, rawKey) {
-  const url = (rawUrl || '').trim();
-  const anonKey = (rawKey || '').trim();
-
-  if (!url || !anonKey) {
-    throw new Error('Both Supabase URL and Anon Key are required.');
-  }
-
-  if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
-    throw new Error('Supabase URL must start with https:// and end with .supabase.co');
-  }
-
-  localStorage.setItem('studyhub_custom_supabase_url', url);
-  localStorage.setItem('studyhub_custom_supabase_anon_key', anonKey);
-
-  buildClient();
-  return { success: true };
-}
-
-/**
- * Clears custom Supabase configuration from localStorage
- */
-export function clearCustomSupabaseConfig() {
-  localStorage.removeItem('studyhub_custom_supabase_url');
-  localStorage.removeItem('studyhub_custom_supabase_anon_key');
-  buildClient();
-}
-
 /**
  * Normalizes a username for case-insensitive uniqueness and consistency.
- * Example: " Zakaria " -> "zakaria"
+ * Example: " Zackk " -> "zackk"
  * @param {string} username
  * @returns {string}
  */
@@ -168,79 +118,77 @@ export function normalizeUsername(username) {
 }
 
 /**
- * Validates a username against allowed rules:
- * - 2 to 30 characters
- * - Alphanumeric, underscores, hyphens, and dots
+ * Validates a username:
+ * - 3 to 30 characters
+ * - Letters, numbers, underscores, and hyphens only
+ * - No spaces
  * @param {string} username
  * @returns {{ valid: boolean, error?: string }}
  */
 export function validateUsername(username) {
   if (!username || typeof username !== 'string') {
-    return { valid: false, error: 'Username is required.' };
+    return { valid: false, error: 'Please enter a username.' };
   }
   const trimmed = username.trim();
-  if (trimmed.length < 2) {
-    return { valid: false, error: 'Username must be at least 2 characters.' };
+  if (trimmed.length < 3) {
+    return { valid: false, error: 'Username must be at least 3 characters.' };
   }
   if (trimmed.length > 30) {
     return { valid: false, error: 'Username must not exceed 30 characters.' };
   }
-  const validPattern = /^[a-zA-Z0-9_.-]+$/;
+  if (/\s/.test(trimmed)) {
+    return { valid: false, error: 'Username cannot contain spaces.' };
+  }
+  // Allow letters, digits, underscores, and hyphens
+  const validPattern = /^[a-zA-Z0-9_-]+$/;
   if (!validPattern.test(trimmed)) {
     return {
       valid: false,
-      error: 'Username can only contain letters, numbers, underscores (_), hyphens (-), and dots (.)',
+      error: 'Username can only contain letters, numbers, underscores (_), and hyphens (-).',
     };
   }
   return { valid: true };
 }
 
 /**
- * Derives an internal email address from normalized username.
- * @param {string} normalizedUsername
- * @returns {string}
+ * Retrieves the currently active workspace from local storage.
  */
-export function deriveInternalEmail(normalizedUsername) {
-  return `user_${normalizedUsername}@studyhub.internal`;
+export function getActiveWorkspace() {
+  try {
+    const storage = getSafeStorage();
+    const raw = storage.getItem(WORKSPACE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 /**
- * Derives a strong, deterministic secret key for passwordless username authentication
- * using Web Crypto SHA-256.
- * @param {string} normalizedUsername
- * @returns {Promise<string>}
+ * Sets the active workspace in local storage.
  */
-export async function deriveUserSecret(normalizedUsername) {
-  const secretSource = `${authSalt}:${normalizedUsername}:studyhub_credential_v1`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(secretSource);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hexHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  return `Sh3#${hexHash}!`;
+export function setActiveWorkspace(workspace) {
+  try {
+    const storage = getSafeStorage();
+    if (workspace) {
+      storage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
+    } else {
+      storage.removeItem(WORKSPACE_STORAGE_KEY);
+    }
+  } catch (e) {
+    // ignore
+  }
 }
 
 /**
- * Retrieves the currently active user, or null if unauthenticated.
+ * Convenience helper to get current workspace or null
  */
 export async function getCurrentUser() {
-  const { isConfigured } = getSupabaseConfig();
-  if (!isConfigured) {
-    const localUser = localStorage.getItem('studyhub_dev_user');
-    if (localUser) {
-      try {
-        return JSON.parse(localUser);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  }
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user || null;
-  } catch (err) {
-    console.error('[StudyHub] Error getting current user:', err);
-    return null;
-  }
+  const ws = getActiveWorkspace();
+  if (!ws) return null;
+  return {
+    id: ws.id,
+    workspace_id: ws.id,
+    username: ws.username,
+    username_normalized: ws.username_normalized,
+  };
 }

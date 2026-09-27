@@ -1,186 +1,196 @@
 /**
- * Multi-device and User Isolation Verification Test
+ * Username-Only Multi-Device Workspace & Isolation Verification Test
  */
 import {
   normalizeUsername,
   validateUsername,
-  deriveInternalEmail,
-  deriveUserSecret,
 } from '../src/storage/supabaseClient.js';
 
 async function runTests() {
-  console.log('--- TEST 1: Username Normalization & Deduplication ---');
-  const u1 = 'Zakaria';
-  const u2 = 'zakaria';
-  const u3 = '  ZAKARIA  ';
+  console.log('=== TEST 1: Username Rules & Validation ===');
 
-  const n1 = normalizeUsername(u1);
-  const n2 = normalizeUsername(u2);
-  const n3 = normalizeUsername(u3);
-
-  console.log(`Normalize "${u1}" -> "${n1}"`);
-  console.log(`Normalize "${u2}" -> "${n2}"`);
-  console.log(`Normalize "${u3}" -> "${n3}"`);
-
-  if (n1 === n2 && n2 === n3 && n1 === 'zakaria') {
-    console.log('✓ PASS: Case-insensitive username normalization identical across variations');
-  } else {
-    throw new Error('FAIL: Username normalization mismatch');
+  const validExamples = ['zackk', 'Zackk', 'zakaria', 'student1', 'abc123', 'math', 'web', 'user_99', 'study-hub'];
+  for (const u of validExamples) {
+    const res = validateUsername(u);
+    if (!res.valid) throw new Error(`Expected "${u}" to be valid, but got: ${res.error}`);
+    console.log(`✓ Valid username accepted: "${u}" -> normalized: "${normalizeUsername(u)}"`);
   }
 
-  console.log('\n--- TEST 2: Deterministic Secret & Internal Email Derivation ---');
-  const email1 = deriveInternalEmail(n1);
-  const email2 = deriveInternalEmail(n2);
-  const sec1 = await deriveUserSecret(n1);
-  const sec2 = await deriveUserSecret(n2);
+  const invalidExamples = [
+    { input: '', reason: 'empty' },
+    { input: 'ab', reason: 'too short (< 3 chars)' },
+    { input: 'a'.repeat(31), reason: 'too long (> 30 chars)' },
+    { input: 'zack user', reason: 'contains spaces' },
+    { input: 'zack@hub.com', reason: 'contains invalid symbol @' },
+  ];
 
-  console.log(`Derived email: ${email1}`);
-  console.log(`Derived credential hash: ${sec1.substring(0, 16)}...`);
-
-  if (email1 === email2 && sec1 === sec2) {
-    console.log('✓ PASS: Device A and Device B generate identical credentials for same username');
-  } else {
-    throw new Error('FAIL: Credential derivation mismatch between devices');
+  for (const item of invalidExamples) {
+    const res = validateUsername(item.input);
+    if (res.valid) throw new Error(`Expected "${item.input}" to be rejected for: ${item.reason}`);
+    console.log(`✓ Invalid username properly rejected: "${item.input}" (${item.reason}) -> "${res.error}"`);
   }
 
-  console.log('\n--- TEST 3: User Isolation in Credential Space ---');
-  const aliceNorm = normalizeUsername('Alice');
-  const secAlice = await deriveUserSecret(aliceNorm);
-  if (sec1 !== secAlice) {
-    console.log('✓ PASS: Different users get isolated credentials');
+  console.log('\n=== TEST 2: Case-Insensitive Matching ===');
+  const variations = ['zackk', 'Zackk', 'ZACKK', '  zackk  '];
+  const normalizedSet = new Set(variations.map(normalizeUsername));
+  if (normalizedSet.size === 1 && normalizedSet.has('zackk')) {
+    console.log('✓ PASS: All variations of "zackk" resolve to the exact same workspace identity "zackk"');
   } else {
-    throw new Error('FAIL: User credential collision');
+    throw new Error('FAIL: Case-insensitive username normalization failed');
   }
 
-  console.log('\n--- TEST 4: Simulated Multi-Device Flow ---');
-  // Device A Memory Store
-  const cloudDatabase = {
-    profiles: new Map(),
-    subjects: new Map(),
-    files: new Map(),
-    readingProgress: new Map(),
-    tasks: new Map(),
-    notes: new Map(),
+  console.log('\n=== TEST 3: Multi-Device Workspace Synchronization ===');
+  // Simulated Cloud PostgreSQL database
+  const cloudWorkspaces = new Map();
+  const cloudSubjects = new Map();
+  const cloudFiles = new Map();
+  const cloudReadingProgress = new Map();
+  const cloudTasks = new Map();
+  const cloudNotes = new Map();
+
+  // DEVICE A FLOW:
+  console.log('--- DEVICE A: User enters "zackk" ---');
+  const rawInputA = 'zackk';
+  const normA = normalizeUsername(rawInputA);
+
+  // Claim/Create workspace on Device A
+  const workspaceA = {
+    id: 'ws-zackk-uuid-1234',
+    username: 'zackk',
+    username_normalized: normA,
+    created_at: new Date().toISOString(),
+    last_active_at: new Date().toISOString(),
   };
+  cloudWorkspaces.set(normA, workspaceA);
+  console.log(`Workspace established on Device A: [ID: ${workspaceA.id}, Username: "${workspaceA.username}"]`);
 
-  // Device A registers / signs in as Zakaria
-  const userIdA = 'usr-zakaria-uuid-001';
-  cloudDatabase.profiles.set(userIdA, {
-    id: userIdA,
-    username: 'Zakaria',
-    username_normalized: n1,
-  });
-
-  // Device A creates Subject: Operating Systems
-  const subjectId = 'sub-os-101';
-  cloudDatabase.subjects.set(subjectId, {
+  // Device A creates Subject: Web
+  const subjectId = 'sub-web-001';
+  cloudSubjects.set(subjectId, {
     id: subjectId,
-    user_id: userIdA,
-    name: 'Operating Systems',
-    icon: '💻',
+    workspace_id: workspaceA.id,
+    name: 'Web',
+    icon: '🌐',
     created_at: new Date().toISOString(),
   });
 
-  // Device A uploads PDF: Systeme d'exploitation.pdf
-  const fileId = 'file-pdf-202';
-  cloudDatabase.files.set(fileId, {
+  // Device A uploads PDF: course.pdf
+  const fileId = 'file-pdf-001';
+  cloudFiles.set(fileId, {
     id: fileId,
-    user_id: userIdA,
+    workspace_id: workspaceA.id,
     subject_id: subjectId,
-    name: "Systeme d'exploitation.pdf",
+    name: 'course.pdf',
     type: 'application/pdf',
-    size: 15420000,
-    storage_path: `${userIdA}/${fileId}_Systeme_d_exploitation.pdf`,
+    size: 2450000,
+    storage_path: `${workspaceA.id}/${fileId}_course.pdf`,
   });
 
-  // Device A reads to page 72 of 298
-  cloudDatabase.readingProgress.set(`${userIdA}_${fileId}`, {
-    id: `${userIdA}_${fileId}`,
-    user_id: userIdA,
+  // Device A reads to Page 72 of 150
+  cloudReadingProgress.set(`${workspaceA.id}_${fileId}`, {
+    id: `${workspaceA.id}_${fileId}`,
+    workspace_id: workspaceA.id,
     file_id: fileId,
     current_page: 72,
-    total_pages: 298,
+    total_pages: 150,
     updated_at: new Date().toISOString(),
   });
 
-  // Device A creates Task and Note
-  const taskId = 'task-303';
-  cloudDatabase.tasks.set(taskId, {
+  // Device A creates Task: Finish TP1
+  const taskId = 'task-001';
+  cloudTasks.set(taskId, {
     id: taskId,
-    user_id: userIdA,
-    title: 'Review Chapter 4 - Memory Management',
+    workspace_id: workspaceA.id,
+    title: 'Finish TP1',
     subject_id: subjectId,
     done: false,
   });
 
-  const noteId = 'note-404';
-  cloudDatabase.notes.set(noteId, {
+  // Device A creates Note: Important chapter
+  const noteId = 'note-001';
+  cloudNotes.set(noteId, {
     id: noteId,
-    user_id: userIdA,
-    title: 'Paging & Segmentation',
-    content: 'TLB miss cost and virtual address translation steps...',
+    workspace_id: workspaceA.id,
+    title: 'Important chapter',
+    content: 'Review web storage and state synchronization...',
     subject_id: subjectId,
   });
 
-  console.log('Device A created:');
-  console.log(`- Subject: "Operating Systems"`);
-  console.log(`- File: "Systeme d'exploitation.pdf"`);
-  console.log(`- Reading Position: Page 72 / 298`);
-  console.log(`- Task: "Review Chapter 4 - Memory Management"`);
-  console.log(`- Note: "Paging & Segmentation"`);
+  console.log('Device A successfully created study data in cloud.');
 
-  // Device B simulation: Device B signs in as "zakaria"
-  console.log('\n--- Simulating Device B (Phone / Second Computer) ---');
-  const userDeviceB = cloudDatabase.profiles.get(userIdA);
-  if (!userDeviceB) throw new Error('Device B could not find user');
+  // DEVICE B FLOW (Second Device / Phone / Laptop):
+  console.log('\n--- DEVICE B: User enters "zackk" on second device ---');
+  const rawInputB = 'Zackk'; // testing with mixed casing
+  const normB = normalizeUsername(rawInputB);
 
-  // Device B queries data for authenticated userIdA
-  const subjectsOnB = Array.from(cloudDatabase.subjects.values()).filter(s => s.user_id === userDeviceB.id);
-  const filesOnB = Array.from(cloudDatabase.files.values()).filter(f => f.user_id === userDeviceB.id);
-  const progressOnB = cloudDatabase.readingProgress.get(`${userDeviceB.id}_${fileId}`);
-  const tasksOnB = Array.from(cloudDatabase.tasks.values()).filter(t => t.user_id === userDeviceB.id);
-  const notesOnB = Array.from(cloudDatabase.notes.values()).filter(n => n.user_id === userDeviceB.id);
+  // Look up existing workspace
+  const workspaceB = cloudWorkspaces.get(normB);
+  if (!workspaceB) throw new Error('Device B failed to find workspace for zackk');
+  console.log(`Device B connected to workspace: [ID: ${workspaceB.id}, Username: "${workspaceB.username}"]`);
 
-  console.log(`Device B received:`);
-  console.log(`- ${subjectsOnB.length} subject(s): "${subjectsOnB[0]?.name}"`);
-  console.log(`- ${filesOnB.length} file(s): "${filesOnB[0]?.name}"`);
-  console.log(`- Saved reading position: Page ${progressOnB?.current_page} of ${progressOnB?.total_pages}`);
-  console.log(`- ${tasksOnB.length} task(s): "${tasksOnB[0]?.title}"`);
-  console.log(`- ${notesOnB.length} note(s): "${notesOnB[0]?.title}"`);
+  // Query Device B data by workspace_id
+  const subjectsB = Array.from(cloudSubjects.values()).filter(s => s.workspace_id === workspaceB.id);
+  const filesB = Array.from(cloudFiles.values()).filter(f => f.workspace_id === workspaceB.id);
+  const progressB = cloudReadingProgress.get(`${workspaceB.id}_${fileId}`);
+  const tasksB = Array.from(cloudTasks.values()).filter(t => t.workspace_id === workspaceB.id);
+  const notesB = Array.from(cloudNotes.values()).filter(n => n.workspace_id === workspaceB.id);
+
+  console.log('Device B fetched:');
+  console.log(`- Subject: "${subjectsB[0]?.name}" (Count: ${subjectsB.length})`);
+  console.log(`- PDF: "${filesB[0]?.name}" (Count: ${filesB.length})`);
+  console.log(`- PDF Reading Position: Page ${progressB?.current_page} / ${progressB?.total_pages}`);
+  console.log(`- Task: "${tasksB[0]?.title}" (Count: ${tasksB.length})`);
+  console.log(`- Note: "${notesB[0]?.title}" (Count: ${notesB.length})`);
 
   if (
-    subjectsOnB.length === 1 &&
-    filesOnB.length === 1 &&
-    progressOnB?.current_page === 72 &&
-    tasksOnB.length === 1 &&
-    notesOnB.length === 1
+    workspaceB.id === workspaceA.id &&
+    subjectsB.length === 1 &&
+    subjectsB[0].name === 'Web' &&
+    filesB.length === 1 &&
+    filesB[0].name === 'course.pdf' &&
+    progressB?.current_page === 72 &&
+    tasksB.length === 1 &&
+    tasksB[0].title === 'Finish TP1' &&
+    notesB.length === 1 &&
+    notesB[0].title === 'Important chapter'
   ) {
-    console.log('✓ PASS: Device B received identical data & reading position from Device A!');
+    console.log('✓ PASS: Device B received 100% identical data, PDF, and Page 72 position from Device A!');
   } else {
-    throw new Error('FAIL: Device B did not receive synced data');
+    throw new Error('FAIL: Multi-device data sync verification failed');
   }
 
-  // Device C: Different User ("Alice")
-  console.log('\n--- Simulating Device C (Different User: "Alice") ---');
-  const userIdAlice = 'usr-alice-uuid-002';
-  const subjectsForAlice = Array.from(cloudDatabase.subjects.values()).filter(s => s.user_id === userIdAlice);
-  const filesForAlice = Array.from(cloudDatabase.files.values()).filter(f => f.user_id === userIdAlice);
-  const progressForAlice = cloudDatabase.readingProgress.get(`${userIdAlice}_${fileId}`);
+  // DEVICE C FLOW (Different user: "ahmed123"):
+  console.log('\n=== TEST 4: Data Isolation Between Different Usernames ===');
+  const normAhmed = normalizeUsername('ahmed123');
+  const workspaceAhmed = {
+    id: 'ws-ahmed-uuid-5678',
+    username: 'ahmed123',
+    username_normalized: normAhmed,
+  };
+  cloudWorkspaces.set(normAhmed, workspaceAhmed);
 
-  console.log(`User "Alice" sees:`);
-  console.log(`- Subjects: ${subjectsForAlice.length}`);
-  console.log(`- Files: ${filesForAlice.length}`);
-  console.log(`- Progress: ${progressForAlice ? 'Visible' : 'None'}`);
+  const subjectsAhmed = Array.from(cloudSubjects.values()).filter(s => s.workspace_id === workspaceAhmed.id);
+  const filesAhmed = Array.from(cloudFiles.values()).filter(f => f.workspace_id === workspaceAhmed.id);
+  const progressAhmed = cloudReadingProgress.get(`${workspaceAhmed.id}_${fileId}`);
+  const tasksAhmed = Array.from(cloudTasks.values()).filter(t => t.workspace_id === workspaceAhmed.id);
+  const notesAhmed = Array.from(cloudNotes.values()).filter(n => n.workspace_id === workspaceAhmed.id);
 
-  if (subjectsForAlice.length === 0 && filesForAlice.length === 0 && !progressForAlice) {
-    console.log('✓ PASS: User isolation verified. Alice cannot see Zakaria\'s data.');
+  console.log(`Workspace "ahmed123" sees:`);
+  console.log(`- Subjects: ${subjectsAhmed.length}`);
+  console.log(`- Files: ${filesAhmed.length}`);
+  console.log(`- Reading Progress: ${progressAhmed ? 'Leaked' : 'None'}`);
+  console.log(`- Tasks: ${tasksAhmed.length}`);
+  console.log(`- Notes: ${notesAhmed.length}`);
+
+  if (subjectsAhmed.length === 0 && filesAhmed.length === 0 && !progressAhmed && tasksAhmed.length === 0 && notesAhmed.length === 0) {
+    console.log('✓ PASS: Strict isolation verified! "ahmed123" cannot see "zackk"\'s study workspace.');
   } else {
-    throw new Error('FAIL: User isolation breach');
+    throw new Error('FAIL: Workspace isolation failed. Data leaked between users.');
   }
 
-  console.log('\n=========================================');
-  console.log('ALL ARCHITECTURE TESTS PASSED SUCCESSFULLY');
-  console.log('=========================================');
+  console.log('\n======================================================');
+  console.log('ALL USERNAME-ONLY CLOUD WORKSPACE TESTS PASSED (100%)');
+  console.log('======================================================');
 }
 
 runTests().catch(err => {

@@ -8,6 +8,7 @@ export async function getAllTasks() {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
+      .eq('workspace_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -38,6 +39,7 @@ export async function getTasksBySubject(subjectId) {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
+      .eq('workspace_id', user.id)
       .eq('subject_id', subjectId)
       .order('created_at', { ascending: false });
 
@@ -71,7 +73,7 @@ export async function addTask({ title, description, subjectId, deadline }) {
   if (user && isSupabaseConfigured) {
     const record = {
       id,
-      user_id: user.id,
+      workspace_id: user.id,
       title,
       description: description || '',
       subject_id: subjectId || null,
@@ -132,6 +134,7 @@ export async function updateTask(id, updates) {
       .from('tasks')
       .update(dbUpdates)
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .select()
       .single();
 
@@ -165,7 +168,12 @@ export async function deleteTask(id) {
   const user = await getCurrentUser();
 
   if (user && isSupabaseConfigured) {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id)
+      .eq('workspace_id', user.id);
+
     if (error) {
       console.error('[StudyHub] Error deleting task:', error);
       throw error;
@@ -182,11 +190,11 @@ export async function toggleTaskDone(id) {
   const user = await getCurrentUser();
 
   if (user && isSupabaseConfigured) {
-    // Fetch current state
     const { data: current } = await supabase
       .from('tasks')
       .select('done')
       .eq('id', id)
+      .eq('workspace_id', user.id)
       .single();
 
     if (current) {
