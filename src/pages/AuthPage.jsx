@@ -5,39 +5,20 @@ import './AuthPage.css';
 export default function AuthPage() {
   const { createWorkspace, loginWorkspace } = useAuth();
 
-  // Action 1: Create a username state
-  const [createUsername, setCreateUsername] = useState('');
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState('');
+  // Mode toggle: 'login' (default) | 'create'
+  const [mode, setMode] = useState('login');
 
-  // Action 2: Enter existing username state
+  // Action 1: Enter existing username state (Default view)
   const [loginUsername, setLoginUsername] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Handle Action 1: Create username
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    const trimmed = createUsername.trim();
-    if (!trimmed) {
-      setCreateError('Please enter a username.');
-      return;
-    }
+  // Action 2: Create username state
+  const [createUsername, setCreateUsername] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
 
-    setCreateError('');
-    setCreateLoading(true);
-
-    try {
-      await createWorkspace(trimmed);
-    } catch (err) {
-      console.error('[StudyHub] Create workspace error:', err);
-      setCreateError(err.message || 'Unable to create username. Please try again.');
-    } finally {
-      setCreateLoading(false);
-    }
-  };
-
-  // Handle Action 2: Enter existing username
+  // Handle Action 1: Enter existing username
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     const trimmed = loginUsername.trim();
@@ -56,6 +37,28 @@ export default function AuthPage() {
       setLoginError(err.message || 'Unable to enter workspace. Please try again.');
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  // Handle Action 2: Create username
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = createUsername.trim();
+    if (!trimmed) {
+      setCreateError('Please enter a username.');
+      return;
+    }
+
+    setCreateError('');
+    setCreateLoading(true);
+
+    try {
+      await createWorkspace(trimmed);
+    } catch (err) {
+      console.error('[StudyHub] Create workspace error:', err);
+      setCreateError(err.message || 'Unable to create username. Please try again.');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -89,136 +92,167 @@ export default function AuthPage() {
         </div>
 
         <p className="auth-instructions">
-          Create a new study workspace or enter your existing username to continue. No password required.
+          {mode === 'login'
+            ? 'Enter your username to access your study workspace. No password required.'
+            : 'Create your username to start your study workspace. No password required.'}
         </p>
 
-        <div className="auth-actions-wrapper">
-          {/* ACTION 1: Create a username */}
-          <section className="auth-action-section" aria-labelledby="heading-create-username">
-            <h2 id="heading-create-username" className="auth-section-title">
-              Create a username
-            </h2>
-            <form onSubmit={handleCreateSubmit} className="auth-form" noValidate>
-              <div className="auth-input-group">
-                <div className={`auth-input-wrapper ${createError ? 'has-error' : ''}`}>
-                  <span className="auth-input-icon">@</span>
-                  <input
-                    id="auth-create-username"
-                    type="text"
-                    className="auth-input"
-                    placeholder="e.g. zackk"
-                    value={createUsername}
-                    onChange={(e) => {
-                      setCreateUsername(e.target.value);
-                      if (createError) setCreateError('');
-                    }}
-                    autoComplete="off"
-                    disabled={createLoading || loginLoading}
-                    maxLength={30}
-                  />
-                </div>
-                {createError && (
-                  <div className="auth-field-error" id="auth-create-error" role="alert">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="auth-field-error-icon"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <span>{createError}</span>
+        <div className="auth-content-view">
+          {mode === 'login' ? (
+            /* DEFAULT VIEW: Enter existing username */
+            <section className="auth-action-section" aria-labelledby="heading-login-username">
+              <h2 id="heading-login-username" className="auth-section-title">
+                Enter your username
+              </h2>
+              <form onSubmit={handleLoginSubmit} className="auth-form" noValidate>
+                <div className="auth-input-group">
+                  <div className={`auth-input-wrapper ${loginError ? 'has-error' : ''}`}>
+                    <span className="auth-input-icon">@</span>
+                    <input
+                      id="auth-login-username"
+                      type="text"
+                      className="auth-input"
+                      placeholder="e.g. student123"
+                      value={loginUsername}
+                      onChange={(e) => {
+                        setLoginUsername(e.target.value);
+                        if (loginError) setLoginError('');
+                      }}
+                      autoComplete="username"
+                      autoFocus
+                      disabled={loginLoading}
+                      maxLength={30}
+                    />
                   </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                className="auth-submit-btn auth-btn-create"
-                disabled={createLoading || loginLoading || !createUsername.trim()}
-                id="auth-create-button"
-              >
-                {createLoading ? (
-                  <span className="auth-spinner-container">
-                    <span className="auth-spinner"></span>
-                    <span>Creating...</span>
-                  </span>
-                ) : (
-                  'Create username'
-                )}
-              </button>
-            </form>
-          </section>
-
-          {/* Clean Visual Divider */}
-          <div className="auth-divider">
-            <span className="auth-divider-line"></span>
-            <span className="auth-divider-text">or</span>
-            <span className="auth-divider-line"></span>
-          </div>
-
-          {/* ACTION 2: Enter an existing username */}
-          <section className="auth-action-section" aria-labelledby="heading-login-username">
-            <h2 id="heading-login-username" className="auth-section-title">
-              Enter your username
-            </h2>
-            <form onSubmit={handleLoginSubmit} className="auth-form" noValidate>
-              <div className="auth-input-group">
-                <div className={`auth-input-wrapper ${loginError ? 'has-error' : ''}`}>
-                  <span className="auth-input-icon">@</span>
-                  <input
-                    id="auth-login-username"
-                    type="text"
-                    className="auth-input"
-                    placeholder="e.g. zackk"
-                    value={loginUsername}
-                    onChange={(e) => {
-                      setLoginUsername(e.target.value);
-                      if (loginError) setLoginError('');
-                    }}
-                    autoComplete="username"
-                    disabled={loginLoading || createLoading}
-                    maxLength={30}
-                  />
+                  {loginError && (
+                    <div className="auth-field-error" id="auth-login-error" role="alert">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="auth-field-error-icon"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{loginError}</span>
+                    </div>
+                  )}
                 </div>
-                {loginError && (
-                  <div className="auth-field-error" id="auth-login-error" role="alert">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="auth-field-error-icon"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <span>{loginError}</span>
-                  </div>
-                )}
-              </div>
 
-              <button
-                type="submit"
-                className="auth-submit-btn auth-btn-continue"
-                disabled={loginLoading || createLoading || !loginUsername.trim()}
-                id="auth-continue-button"
-              >
-                {loginLoading ? (
-                  <span className="auth-spinner-container">
-                    <span className="auth-spinner"></span>
-                    <span>Continuing...</span>
-                  </span>
-                ) : (
-                  'Continue'
-                )}
-              </button>
-            </form>
-          </section>
+                <button
+                  type="submit"
+                  className="auth-submit-btn auth-btn-continue"
+                  disabled={loginLoading || !loginUsername.trim()}
+                  id="auth-continue-button"
+                >
+                  {loginLoading ? (
+                    <span className="auth-spinner-container">
+                      <span className="auth-spinner"></span>
+                      <span>Continuing...</span>
+                    </span>
+                  ) : (
+                    'Continue'
+                  )}
+                </button>
+              </form>
+
+              {/* Clickable toggle to switch to username creation */}
+              <div className="auth-toggle-footer">
+                <button
+                  type="button"
+                  className="auth-toggle-btn"
+                  id="auth-toggle-to-create"
+                  onClick={() => {
+                    setMode('create');
+                    setLoginError('');
+                    setCreateError('');
+                  }}
+                >
+                  Create a new username
+                </button>
+              </div>
+            </section>
+          ) : (
+            /* TOGGLE VIEW: Create username */
+            <section className="auth-action-section" aria-labelledby="heading-create-username">
+              <h2 id="heading-create-username" className="auth-section-title">
+                Create your username
+              </h2>
+              <form onSubmit={handleCreateSubmit} className="auth-form" noValidate>
+                <div className="auth-input-group">
+                  <div className={`auth-input-wrapper ${createError ? 'has-error' : ''}`}>
+                    <span className="auth-input-icon">@</span>
+                    <input
+                      id="auth-create-username"
+                      type="text"
+                      className="auth-input"
+                      placeholder="e.g. student123"
+                      value={createUsername}
+                      onChange={(e) => {
+                        setCreateUsername(e.target.value);
+                        if (createError) setCreateError('');
+                      }}
+                      autoComplete="off"
+                      autoFocus
+                      disabled={createLoading}
+                      maxLength={30}
+                    />
+                  </div>
+                  {createError && (
+                    <div className="auth-field-error" id="auth-create-error" role="alert">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="auth-field-error-icon"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{createError}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="auth-submit-btn auth-btn-create"
+                  disabled={createLoading || !createUsername.trim()}
+                  id="auth-create-button"
+                >
+                  {createLoading ? (
+                    <span className="auth-spinner-container">
+                      <span className="auth-spinner"></span>
+                      <span>Creating...</span>
+                    </span>
+                  ) : (
+                    'Create username'
+                  )}
+                </button>
+              </form>
+
+              {/* Clickable toggle to switch back to login */}
+              <div className="auth-toggle-footer">
+                <button
+                  type="button"
+                  className="auth-toggle-btn"
+                  id="auth-toggle-to-login"
+                  onClick={() => {
+                    setMode('login');
+                    setCreateError('');
+                    setLoginError('');
+                  }}
+                >
+                  Already have a username? Enter it
+                </button>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Features footer */}
