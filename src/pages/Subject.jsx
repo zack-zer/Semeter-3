@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FolderPlus, Upload, FileText, CheckSquare, Edit3 } from 'lucide-react';
+import { FolderPlus, Upload, FileText, CheckSquare, Edit3, User, Calendar, Tag, GraduationCap } from 'lucide-react';
 import { getSubjectById } from '../storage/subjectStore';
 import { getFilesInFolder, getFoldersInFolder, addFile, addFolder, renameFile, renameFolder, deleteFile, deleteFolder, getFolderPath } from '../storage/fileStore';
 import { getTasksBySubject, addTask, updateTask, deleteTask, toggleTaskDone } from '../storage/taskStore';
@@ -186,24 +186,54 @@ const Subject = () => {
     }
   };
 
-  if (!subject) return <div className="p-8">Loading...</div>;
+  if (!subject) {
+    return (
+      <div className="page-loading-state">
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading course syllabus...</p>
+      </div>
+    );
+  }
+
+  // Derive syllabus course metadata with graceful collegiate defaults
+  const courseCode = subject.code || `CS-${subject.name.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || '301'}`;
+  const instructorName = subject.instructor || 'Prof. Unassigned';
+  const courseSchedule = subject.schedule || 'Mon / Wed • 10:00 AM – 11:30 AM';
+  const semesterTerm = subject.semester || 'Semester 3';
+  const moduleType = subject.moduleType || 'Core Academic Course';
 
   return (
     <div className="subject-container fade-in">
-      <header className="page-header">
+      <div className="subject-breadcrumbs-wrap mb-4">
         <Breadcrumbs items={breadcrumbs} />
-        <div className="flex justify-between items-end mt-4">
-          <h1 className="page-title mb-0 flex items-center gap-2">
-            <span>{subject.icon}</span> {subject.name}
-          </h1>
-          <div className="toolbar flex gap-2">
+      </div>
+
+      {/* Collegiate Academic Syllabus Header Banner */}
+      <section 
+        className="syllabus-banner card mb-6"
+        style={{ '--card-accent': subject.color || 'var(--accent)' }}
+      >
+        <div className="syllabus-top-meta">
+          <div className="syllabus-badges">
+            <span className="syllabus-badge semester-badge">
+              <GraduationCap size={13} /> {semesterTerm}
+            </span>
+            <span className="syllabus-badge code-badge">
+              <Tag size={13} /> {courseCode}
+            </span>
+            <span className="syllabus-badge module-badge">
+              {moduleType}
+            </span>
+          </div>
+
+          <div className="syllabus-toolbar">
             {activeTab === 'files' && (
               <>
                 <button className="btn btn-secondary flex items-center gap-2" onClick={() => setModalState({ type: 'addFolder' })}>
-                  <FolderPlus size={16} /> New Folder
+                  <FolderPlus size={15} /> New Folder
                 </button>
                 <button className="btn btn-primary flex items-center gap-2" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={16} /> Add Files
+                  <Upload size={15} /> Add Files
                 </button>
                 <input type="file" multiple hidden ref={fileInputRef} onChange={handleFileUpload} />
               </>
@@ -216,12 +246,61 @@ const Subject = () => {
             )}
           </div>
         </div>
-      </header>
 
+        <div className="syllabus-main-header">
+          <div className="syllabus-icon-frame">
+            <span className="syllabus-emoji-icon">{subject.icon}</span>
+          </div>
+          <div className="syllabus-title-block">
+            <h1 className="syllabus-title">{subject.name}</h1>
+            <p className="syllabus-subtitle">Official course syllabus, lecture materials, and assignment repository.</p>
+          </div>
+        </div>
+
+        <div className="syllabus-info-grid">
+          <div className="syllabus-info-card">
+            <div className="info-card-icon">
+              <Tag size={16} />
+            </div>
+            <div className="info-card-text">
+              <span className="info-label">Course Code</span>
+              <span className="info-value">{courseCode}</span>
+            </div>
+          </div>
+
+          <div className="syllabus-info-card">
+            <div className="info-card-icon">
+              <User size={16} />
+            </div>
+            <div className="info-card-text">
+              <span className="info-label">Instructor</span>
+              <span className="info-value">{instructorName}</span>
+            </div>
+          </div>
+
+          <div className="syllabus-info-card">
+            <div className="info-card-icon">
+              <Calendar size={16} />
+            </div>
+            <div className="info-card-text">
+              <span className="info-label">Lecture Schedule</span>
+              <span className="info-value">{courseSchedule}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Course Navigation Tabs */}
       <div className="tabs mb-6">
-        <button className={`tab-btn ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}><FileText size={18}/> Files</button>
-        <button className={`tab-btn ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}><CheckSquare size={18}/> Tasks</button>
-        <button className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}><Edit3 size={18}/> Notes</button>
+        <button className={`tab-btn ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
+          <FileText size={17}/> Files & Folders
+        </button>
+        <button className={`tab-btn ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
+          <CheckSquare size={17}/> Tasks & Deadlines
+        </button>
+        <button className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>
+          <Edit3 size={17}/> Course Notes
+        </button>
       </div>
 
       <div className="tab-content">

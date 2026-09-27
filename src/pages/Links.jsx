@@ -136,15 +136,20 @@ const Links = () => {
   };
 
   if (loading) {
-    return <div className="p-8">Loading study links...</div>;
+    return (
+      <div className="page-loading-state">
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading academic resources & study links...</p>
+      </div>
+    );
   }
 
   return (
     <div className="links-page-container fade-in">
       <header className="page-header flex justify-between items-center">
         <div>
-          <h1 className="page-title">Links</h1>
-          <p className="text-secondary">Quick access to websites you use frequently for your studies.</p>
+          <h1 className="page-title">Academic Links & Resources</h1>
+          <p className="page-subtitle">Quick access to scholarly portals, repositories, and learning tools</p>
         </div>
         <div className="links-header-actions">
           <button className="btn btn-primary" onClick={() => openAddModal()}>

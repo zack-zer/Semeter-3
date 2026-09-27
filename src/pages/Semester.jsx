@@ -83,14 +83,21 @@ const Semester = () => {
     setIsDeleteConfirmOpen(true);
   };
 
-  if (loading) return <div className="p-8">Loading semester...</div>;
+  if (loading) {
+    return (
+      <div className="page-loading-state">
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading semester courses...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="semester-container fade-in">
       <header className="page-header flex justify-between items-center">
         <div>
           <h1 className="page-title">Semester 3</h1>
-          <p className="text-secondary">Manage your subjects and courses</p>
+          <p className="page-subtitle">Manage your enrolled subjects, course notes, and study files</p>
         </div>
         <button className="btn btn-primary" onClick={() => { setFormData({ name: '', icon: '📚' }); setIsAddModalOpen(true); }}>
           + Add Subject

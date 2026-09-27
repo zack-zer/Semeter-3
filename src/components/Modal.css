@@ -19,11 +19,12 @@
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
 }
 
 .modal-header {
@@ -36,8 +37,10 @@
 }
 
 .modal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
   margin: 0;
 }

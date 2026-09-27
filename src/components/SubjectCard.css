@@ -77,9 +77,11 @@
 }
 
 .subject-card-title {
-  font-size: 1.25rem;
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.015em;
   margin: 0;
   word-break: break-word;
 }

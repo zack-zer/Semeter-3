@@ -27,7 +27,7 @@ const FILE_TYPES = {
   cpp: { category: 'code', icon: 'Code', color: '#3b82f6' },
   html: { category: 'code', icon: 'Code', color: '#f59e0b' },
   css: { category: 'code', icon: 'Code', color: '#3b82f6' },
-  sql: { category: 'code', icon: 'Database', color: '#4db8a4' },
+  sql: { category: 'code', icon: 'Database', color: '#b83c50' },
 };
 
 export function getFileExtension(filename) {

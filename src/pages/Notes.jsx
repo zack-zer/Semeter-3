@@ -76,14 +76,21 @@ const Notes = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Loading notes...</div>;
+  if (loading) {
+    return (
+      <div className="page-loading-state">
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading lecture notes & study thoughts...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="notes-page-container fade-in">
       <header className="page-header flex justify-between items-center">
         <div>
-          <h1 className="page-title">Notes</h1>
-          <p className="text-secondary">Jot down your thoughts and ideas</p>
+          <h1 className="page-title">Course Notes</h1>
+          <p className="page-subtitle">Jot down lecture takeaways, reading summaries, and study ideas</p>
         </div>
         <button className="btn btn-primary" onClick={openAddModal}>+ Add Note</button>
       </header>

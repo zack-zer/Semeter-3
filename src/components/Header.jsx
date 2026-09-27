@@ -52,9 +52,14 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
           >
             <Menu size={24} />
           </button>
-          <NavLink to="/" className="header-logo">
-            <BookOpen size={24} className="logo-icon" />
-            <span>StudyHub</span>
+          <NavLink to="/" className="header-logo" title="StudyHub - Academic Workspace">
+            <div className="header-emblem">
+              <GraduationCap size={19} className="emblem-icon" />
+            </div>
+            <div className="header-wordmark">
+              <span className="brand-name">StudyHub</span>
+              <span className="brand-sub">Semestre 3</span>
+            </div>
           </NavLink>
         </div>
 

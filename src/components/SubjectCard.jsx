@@ -29,13 +29,19 @@ const SubjectCard = ({ subject, fileCount, taskCount, onOpen, onRename, onDelete
   };
 
   return (
-    <div className="subject-card card">
+    <div 
+      className="subject-card card"
+      style={{ '--card-accent': subject.color || 'var(--accent)' }}
+    >
       <div className="subject-card-header">
         <div className="subject-icon-large">{subject.icon}</div>
         <div className="subject-actions" ref={menuRef}>
           <button 
+            type="button"
             className="btn-icon" 
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+            title="Subject options"
+            aria-label="Subject options"
           >
             <MoreVertical size={20} />
           </button>

@@ -2,14 +2,16 @@
   display: flex;
   gap: 1rem;
   padding: 1.25rem;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   border-radius: var(--radius);
   transition: all var(--transition);
 }
 
 .task-item:hover {
-  border-color: var(--accent-light);
+  border-left-color: var(--accent);
+  border-color: var(--border-light);
   box-shadow: var(--shadow);
 }
 
@@ -71,12 +73,14 @@
 }
 
 .task-badge {
-  font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  background-color: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .task-description {

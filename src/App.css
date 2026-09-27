@@ -27,63 +27,91 @@ p, h1, h2, h3, h4, h5, h6 {
 
 :root {
   /*
-   * Dark theme (default).
-   * Slightly warm dark grays (like Notion/Discord), soft teal accent.
-   * Very comfortable for studying at night.
+   * Collegiate Dark Theme (Deep Maroon + Warm Cream).
+   * Refined charcoal-oxblood surfaces with rich Harvard crimson accents and warm ivory text.
    */
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #242424;
-  --bg-tertiary: #2c2c2c;
-  --bg-hover: #363636;
-  --text-primary: #d9d9d9;
-  --text-secondary: #999999;
-  --text-muted: #666666;
-  --accent: #4db8a4;
-  --accent-hover: #5fcdb8;
-  --accent-light: rgba(77, 184, 164, 0.12);
-  --success: #6abf69;
-  --success-light: rgba(106, 191, 105, 0.12);
-  --warning: #e2b340;
-  --warning-light: rgba(226, 179, 64, 0.10);
-  --danger: #e06060;
-  --danger-light: rgba(224, 96, 96, 0.12);
-  --border: #303030;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --font-serif: 'Lora', 'Georgia', 'Cambria', 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --bg-primary: #141214;
+  --bg-secondary: #1d181c;
+  --bg-tertiary: #272125;
+  --bg-hover: #332b31;
+  --text-primary: #f5f2ec;
+  --text-secondary: #b8aea9;
+  --text-muted: #82757b;
+  
+  --accent: #b83c50;
+  --accent-hover: #cb485d;
+  --accent-light: rgba(184, 60, 80, 0.14);
+  --accent-border: rgba(184, 60, 80, 0.32);
+  --cream-accent: #f2e9dc;
+  --cream-muted: #d9cdbd;
+
+  --success: #4a9e6b;
+  --success-light: rgba(74, 158, 107, 0.14);
+  --warning: #d99632;
+  --warning-light: rgba(217, 150, 50, 0.14);
+  --danger: #cc4d4d;
+  --danger-light: rgba(204, 77, 77, 0.14);
+
+  --border: #352c32;
+  --border-light: #463b43;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.45);
   --radius: 12px;
   --radius-sm: 8px;
   --radius-xs: 6px;
-  --transition: 150ms ease;
+  --transition: 180ms ease;
   --sidebar-width: 260px;
   --header-height: 64px;
 }
 
 [data-theme='light'] {
-  /* Light theme — warm creamy whites, easy daytime reading */
-  --bg-primary: #f7f6f3;
+  /*
+   * Collegiate Light Theme (Warm Antique Parchment & Archival Oxblood).
+   * Scholarly ivory paper base with deep maroon accents and crisp readable text.
+   */
+  --bg-primary: #fbf9f4;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #eeedea;
-  --bg-hover: #e5e4e0;
-  --text-primary: #2d2d2d;
-  --text-secondary: #6b6b6b;
-  --text-muted: #a0a0a0;
-  --accent: #2b8a7a;
-  --accent-hover: #339e8c;
-  --accent-light: rgba(43, 138, 122, 0.08);
-  --success: #3a8a3c;
-  --success-light: rgba(58, 138, 60, 0.08);
-  --warning: #c49520;
-  --warning-light: rgba(196, 149, 32, 0.08);
-  --danger: #c44040;
-  --danger-light: rgba(196, 64, 64, 0.08);
-  --border: #dddcd8;
-  --shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --bg-tertiary: #f2ede4;
+  --bg-hover: #e8e2d7;
+  --text-primary: #22171b;
+  --text-secondary: #5e5156;
+  --text-muted: #8e8086;
+
+  --accent: #872132;
+  --accent-hover: #9e283c;
+  --accent-light: rgba(135, 33, 50, 0.08);
+  --accent-border: rgba(135, 33, 50, 0.22);
+  --cream-accent: #54141e;
+  --cream-muted: #6f5f59;
+
+  --success: #2e7d4d;
+  --success-light: rgba(46, 125, 77, 0.08);
+  --warning: #b37314;
+  --warning-light: rgba(179, 115, 20, 0.08);
+  --danger: #b83333;
+  --danger-light: rgba(184, 51, 51, 0.08);
+
+  --border: #dfd8cc;
+  --border-light: #eee9e0;
+  --shadow: 0 2px 10px rgba(34, 23, 27, 0.06);
+  --shadow-lg: 0 12px 30px rgba(34, 23, 27, 0.10);
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
 }
 
 html {
@@ -156,35 +184,45 @@ html {
   gap: 8px;
   padding: 8px 16px;
   border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
   font-weight: 500;
   transition: all var(--transition);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   font-size: 14px;
 }
 
 .btn-primary {
   background-color: var(--accent);
-  color: white;
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 6px rgba(135, 33, 50, 0.25);
 }
 .btn-primary:hover {
   background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(135, 33, 50, 0.35);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
+  border-color: var(--border);
 }
 .btn-secondary:hover {
   background-color: var(--bg-hover);
+  border-color: var(--border-light);
 }
 
 .btn-danger {
   background-color: var(--danger);
   color: white;
+  border-color: var(--danger);
 }
 .btn-danger:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -204,9 +242,16 @@ html {
 .card {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
+  border-top: 3px solid var(--card-accent, var(--border));
   border-radius: var(--radius);
   padding: 24px;
   box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.card:hover {
+  border-color: var(--border-light);
+  border-top-color: var(--card-accent, var(--border-light));
 }
 
 .input, .textarea, .select {
@@ -216,40 +261,59 @@ html {
   border: 1px solid var(--border);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: border-color var(--transition);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .input:focus, .textarea:focus, .select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .badge {
-  display: inline-block;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 500;
   background-color: var(--bg-tertiary);
   color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .page-title {
-  font-size: 1.75rem;
+  font-family: var(--font-serif);
+  font-size: 2.15rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .section-title {
-  font-size: 1.25rem;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
   font-weight: 600;
-  margin-bottom: 16px;
+  letter-spacing: -0.015em;
+  margin-bottom: 18px;
+  color: var(--text-primary);
 }
 
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -473,22 +537,53 @@ html {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background-color: var(--bg-primary, #1a1a1a);
-  color: var(--text-secondary, #999999);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
 }
 
 .app-loading-spinner {
-  width: 38px;
-  height: 38px;
-  border: 3px solid rgba(77, 184, 164, 0.2);
-  border-top-color: var(--accent, #4db8a4);
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--accent-light);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: appSpin 0.75s linear infinite;
 }
 
 .app-loading-text {
-  font-size: 0.95rem;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+
+/* Reusable academic page loading state */
+.page-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 16px;
+  color: var(--text-secondary);
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.page-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--accent-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: appSpin 0.8s linear infinite;
+}
+
+.page-loading-text {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--text-muted);
 }
 
 @keyframes appSpin {
@@ -496,4 +591,5 @@ html {
     transform: rotate(360deg);
   }
 }
+
 

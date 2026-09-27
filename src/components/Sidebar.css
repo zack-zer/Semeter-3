@@ -36,10 +36,16 @@
 
 .sidebar-mobile-header {
   display: none;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
   justify-content: space-between;
   align-items: center;
+}
+
+.sidebar-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .sidebar-title {
@@ -57,12 +63,13 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
+  padding: 0.65rem 0.95rem;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  transition: var(--transition);
+  border-left: 3px solid transparent;
+  transition: all var(--transition);
 }
 
 .sidebar-link:hover {
@@ -73,6 +80,8 @@
 .sidebar-link.active {
   background-color: var(--accent-light);
   color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 600;
 }
 
 .sidebar-divider {

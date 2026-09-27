@@ -18,8 +18,9 @@
   max-width: 600px;
   background-color: var(--bg-primary);
   border-radius: var(--radius);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
   overflow: hidden;
   display: flex;
   flex-direction: column;

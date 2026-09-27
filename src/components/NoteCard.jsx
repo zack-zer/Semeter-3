@@ -8,11 +8,11 @@ const NoteCard = ({ note, subjectName, onEdit, onDelete }) => {
   };
 
   return (
-    <div className="card note-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem', position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{note.title}</h3>
+    <div className="card note-card" style={{ padding: '1.35rem', display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem', position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+        <h3 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: '1.2rem', fontWeight: 600, letterSpacing: '-0.015em', color: 'var(--text-primary)' }}>{note.title}</h3>
         {subjectName && (
-          <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', borderRadius: '999px' }}>
+          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '1px solid var(--accent-border)', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
             {subjectName}
           </span>
         )}

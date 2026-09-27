@@ -92,14 +92,21 @@ const Tasks = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Loading tasks...</div>;
+  if (loading) {
+    return (
+      <div className="page-loading-state">
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading coursework assignments...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="tasks-page-container fade-in">
       <header className="page-header flex justify-between items-center">
         <div>
-          <h1 className="page-title">Tasks</h1>
-          <p className="text-secondary">Track your assignments and to-dos</p>
+          <h1 className="page-title">Tasks & Deadlines</h1>
+          <p className="page-subtitle">Track your assignment deliverables, exams, and study to-dos</p>
         </div>
         <button className="btn btn-primary" onClick={openAddModal}>+ Add Task</button>
       </header>

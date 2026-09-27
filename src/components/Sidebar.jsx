@@ -31,7 +31,12 @@ const Sidebar = ({ isOpen, isDesktopOpen = true, onClose }) => {
       <div className={`sidebar-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
       <aside className={`sidebar ${isOpen ? 'open' : ''} ${!isDesktopOpen ? 'collapsed' : ''}`}>
         <div className="sidebar-mobile-header">
-          <span className="sidebar-title">Menu</span>
+          <div className="sidebar-brand-lockup">
+            <div className="header-emblem">
+              <GraduationCap size={18} className="emblem-icon" />
+            </div>
+            <span className="brand-name">StudyHub</span>
+          </div>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close menu">
             <X size={20} />
           </button>

@@ -254,13 +254,20 @@ const FileViewer = () => {
     document.body.removeChild(a);
   };
 
-  if (loading) return <div className="viewer-loading">Loading document...</div>;
+  if (loading) {
+    return (
+      <div className="page-loading-state" style={{ minHeight: '80vh' }}>
+        <div className="page-loading-spinner"></div>
+        <p className="page-loading-text">Loading document & reading engine...</p>
+      </div>
+    );
+  }
   if (error) return <div className="viewer-error text-danger">{error}</div>;
 
   const progressPercent = totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
 
   return (
-    <div className="viewer-container">
+    <div className="viewer-container fade-in">
       {/* Thin progress bar at very top */}
       <div className="viewer-progress-bar">
         <ProgressBar value={progressPercent} showLabel={false} size="sm" />
