@@ -56,11 +56,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Enter StudyHub workspace with username only
-   * Creates workspace if it doesn't exist, or opens it if it does
+   * Create a new StudyHub workspace for a new username.
+   * Fails if username already exists.
    * @param {string} rawUsername
    */
-  const enterWorkspace = async (rawUsername) => {
+  const createWorkspace = async (rawUsername) => {
     setError(null);
     const validation = validateUsername(rawUsername);
     if (!validation.valid) {
@@ -74,27 +74,30 @@ export function AuthProvider({ children }) {
     if (!isConfigured) {
       // Local demo mode fallback
       const localWorkspaces = JSON.parse(localStorage.getItem('studyhub_local_workspaces') || '[]');
-      let found = localWorkspaces.find((w) => w.username_normalized === normalized);
-      if (!found) {
-        found = {
-          id: `local-${normalized}`,
-          username: trimmed,
-          username_normalized: normalized,
-          created_at: new Date().toISOString(),
-        };
-        localWorkspaces.push(found);
-        localStorage.setItem('studyhub_local_workspaces', JSON.stringify(localWorkspaces));
+      const existing = localWorkspaces.find((w) => w.username_normalized === normalized);
+      if (existing) {
+        throw new Error('Username already exists.');
       }
-      setActiveWorkspace(found);
-      setWorkspace(found);
-      return found;
+
+      const newWs = {
+        id: `local-${normalized}`,
+        username: trimmed,
+        username_normalized: normalized,
+        created_at: new Date().toISOString(),
+        last_active_at: new Date().toISOString(),
+      };
+      localWorkspaces.push(newWs);
+      localStorage.setItem('studyhub_local_workspaces', JSON.stringify(localWorkspaces));
+      setActiveWorkspace(newWs);
+      setWorkspace(newWs);
+      return newWs;
     }
 
     // Remote Supabase Cloud Persistence
-    // 1. Check if workspace already exists
+    // Check if workspace already exists
     const { data: existing, error: selectError } = await supabase
       .from('workspaces')
-      .select('*')
+      .select('id, username')
       .eq('username_normalized', normalized)
       .maybeSingle();
 
@@ -104,18 +107,10 @@ export function AuthProvider({ children }) {
     }
 
     if (existing) {
-      // Update last active timestamp
-      await supabase
-        .from('workspaces')
-        .update({ last_active_at: new Date().toISOString() })
-        .eq('id', existing.id);
-
-      setActiveWorkspace(existing);
-      setWorkspace(existing);
-      return existing;
+      throw new Error('Username already exists.');
     }
 
-    // 2. Workspace does not exist yet -> Claim & create it immediately
+    // Workspace does not exist -> Create new workspace
     const newRecord = {
       username: trimmed,
       username_normalized: normalized,
@@ -130,13 +125,92 @@ export function AuthProvider({ children }) {
       .single();
 
     if (insertError) {
+      if (
+        insertError.code === '23505' ||
+        insertError.message?.toLowerCase().includes('duplicate') ||
+        insertError.message?.toLowerCase().includes('unique')
+      ) {
+        throw new Error('Username already exists.');
+      }
       console.error('[StudyHub] Error creating workspace:', insertError);
-      throw new Error(`Failed to claim workspace: ${insertError.message}`);
+      throw new Error(`Failed to create workspace: ${insertError.message}`);
     }
 
     setActiveWorkspace(created);
     setWorkspace(created);
     return created;
+  };
+
+  /**
+   * Log into an existing StudyHub workspace by username.
+   * Fails if username does not exist.
+   * @param {string} rawUsername
+   */
+  const loginWorkspace = async (rawUsername) => {
+    setError(null);
+    const validation = validateUsername(rawUsername);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    const normalized = normalizeUsername(rawUsername);
+    const { isConfigured } = getSupabaseConfig();
+
+    if (!isConfigured) {
+      // Local demo mode fallback
+      const localWorkspaces = JSON.parse(localStorage.getItem('studyhub_local_workspaces') || '[]');
+      const found = localWorkspaces.find((w) => w.username_normalized === normalized);
+      if (!found) {
+        throw new Error('Username not found.');
+      }
+      setActiveWorkspace(found);
+      setWorkspace(found);
+      return found;
+    }
+
+    // Remote Supabase Cloud Persistence
+    const { data: existing, error: selectError } = await supabase
+      .from('workspaces')
+      .select('*')
+      .eq('username_normalized', normalized)
+      .maybeSingle();
+
+    if (selectError) {
+      console.error('[StudyHub] Error querying workspace:', selectError);
+      throw new Error(`Cloud connection error: ${selectError.message}`);
+    }
+
+    if (!existing) {
+      throw new Error('Username not found.');
+    }
+
+    // Update last_active_at timestamp without modifying existing study data
+    try {
+      await supabase
+        .from('workspaces')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    } catch (e) {
+      // Non-blocking update failure
+    }
+
+    setActiveWorkspace(existing);
+    setWorkspace(existing);
+    return existing;
+  };
+
+  /**
+   * Legacy enter helper for backward compatibility
+   */
+  const enterWorkspace = async (rawUsername) => {
+    try {
+      return await loginWorkspace(rawUsername);
+    } catch (err) {
+      if (err.message === 'Username not found.') {
+        return await createWorkspace(rawUsername);
+      }
+      throw err;
+    }
   };
 
   /**
@@ -156,9 +230,11 @@ export function AuthProvider({ children }) {
     loading,
     error,
     setError,
+    createWorkspace,
+    loginWorkspace,
     enterWorkspace,
-    signIn: enterWorkspace, // alias
-    signUp: enterWorkspace, // alias
+    signIn: loginWorkspace,
+    signUp: createWorkspace,
     signOut,
     isAuthenticated: Boolean(workspace),
     isConfigured: getSupabaseConfig().isConfigured,

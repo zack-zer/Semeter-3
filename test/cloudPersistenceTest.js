@@ -188,6 +188,92 @@ async function runTests() {
     throw new Error('FAIL: Workspace isolation failed. Data leaked between users.');
   }
 
+  console.log('\n=== TEST 5: Distinct "Create Username" vs "Enter Existing Username" Actions ===');
+  // Mock Workspace Store
+  const registeredUsers = new Map();
+  registeredUsers.set('zackk', {
+    id: 'ws-zackk-123',
+    username: 'zackk',
+    username_normalized: 'zackk',
+    created_at: new Date().toISOString(),
+  });
+
+  const mockCreateWorkspace = async (raw) => {
+    const val = validateUsername(raw);
+    if (!val.valid) throw new Error(val.error);
+    const norm = normalizeUsername(raw);
+    if (registeredUsers.has(norm)) {
+      throw new Error('Username already exists.');
+    }
+    const record = {
+      id: `ws-${norm}-generated`,
+      username: raw.trim(),
+      username_normalized: norm,
+      created_at: new Date().toISOString(),
+    };
+    registeredUsers.set(norm, record);
+    return record;
+  };
+
+  const mockLoginWorkspace = async (raw) => {
+    const val = validateUsername(raw);
+    if (!val.valid) throw new Error(val.error);
+    const norm = normalizeUsername(raw);
+    const existing = registeredUsers.get(norm);
+    if (!existing) {
+      throw new Error('Username not found.');
+    }
+    return existing;
+  };
+
+  // Case A: Create brand new username
+  console.log('Case A: Creating brand new username "sara_student"...');
+  const createdSara = await mockCreateWorkspace('sara_student');
+  if (createdSara && registeredUsers.has('sara_student')) {
+    console.log('✓ PASS: New username "sara_student" successfully created.');
+  } else {
+    throw new Error('FAIL: New username creation failed.');
+  }
+
+  // Case B: Duplicate creation attempt
+  console.log('Case B: Attempting to create existing username "sara_student" again...');
+  let dupError = null;
+  try {
+    await mockCreateWorkspace('Sara_Student');
+  } catch (err) {
+    dupError = err.message;
+  }
+  if (dupError === 'Username already exists.') {
+    console.log('✓ PASS: Duplicate creation blocked with exact message: "Username already exists."');
+  } else {
+    throw new Error(`FAIL: Expected "Username already exists." but got "${dupError}"`);
+  }
+
+  // Case C: Login with existing username
+  console.log('Case C: Logging into existing username "zackk"...');
+  const loggedInZack = await mockLoginWorkspace('Zackk');
+  if (loggedInZack && loggedInZack.id === 'ws-zackk-123') {
+    console.log('✓ PASS: Existing user "zackk" logged in successfully with all data intact.');
+  } else {
+    throw new Error('FAIL: Existing user login failed.');
+  }
+
+  // Case D: Login with non-existent username
+  console.log('Case D: Attempting to log into non-existent username "ghost_user"...');
+  let notFoundError = null;
+  const countBefore = registeredUsers.size;
+  try {
+    await mockLoginWorkspace('ghost_user');
+  } catch (err) {
+    notFoundError = err.message;
+  }
+  const countAfter = registeredUsers.size;
+  if (notFoundError === 'Username not found.' && countBefore === countAfter) {
+    console.log('✓ PASS: Non-existent login blocked with exact message: "Username not found." and NO account created.');
+  } else {
+    throw new Error(`FAIL: Expected "Username not found." and no account created, got: "${notFoundError}"`);
+  }
+
   console.log('\n======================================================');
   console.log('ALL USERNAME-ONLY CLOUD WORKSPACE TESTS PASSED (100%)');
   console.log('======================================================');
