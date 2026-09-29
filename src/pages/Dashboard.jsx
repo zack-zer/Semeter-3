@@ -20,10 +20,12 @@ import { getTaskStats } from '../storage/taskStore';
 import { getRecentFiles } from '../storage/progressStore';
 import ProgressBar from '../components/ProgressBar';
 import { formatRelative } from '../utils/formatDate';
+import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { username } = useAuth();
   const [stats, setStats] = useState({ subjects: 0, files: 0, pending: 0, completed: 0 });
   const [recentFiles, setRecentFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,9 @@ const Dashboard = () => {
       <header className="page-header">
         <div>
           <h1 className="page-title">Academic Dashboard</h1>
-          <p className="page-subtitle">Welcome back • Track your coursework and continue your study sessions.</p>
+          <p className="page-subtitle">
+            Welcome back{username ? `, @${username}` : ''} • Track your coursework and continue your study sessions.
+          </p>
         </div>
         <div className="dashboard-header-badge">
           <GraduationCap size={16} />

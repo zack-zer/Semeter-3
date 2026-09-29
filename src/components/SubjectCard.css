@@ -1,25 +1,68 @@
+/* ==============================================================================
+   SubjectCard Styles
+   ============================================================================== */
+
 .subject-card {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: 22px;
   height: 100%;
-  transition: transform var(--transition), box-shadow var(--transition);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.subject-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--accent));
+  transition: height var(--transition-fast);
 }
 
 .subject-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow);
+}
+
+.subject-card:hover::before {
+  height: 4px;
 }
 
 .subject-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
-.subject-icon-large {
-  font-size: 3rem;
+.subject-icon-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast);
+}
+
+.subject-card:hover .subject-icon-badge {
+  transform: scale(1.05);
+}
+
+.subject-emoji-char {
+  font-size: 1.85rem;
   line-height: 1;
 }
 
@@ -27,76 +70,94 @@
   position: relative;
 }
 
+.subject-options-btn {
+  color: var(--text-muted);
+}
+
+.subject-options-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
 .subject-menu {
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 0.5rem;
-  z-index: 10;
-  min-width: 150px;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem;
-  background: none;
-  border: none;
-  border-radius: var(--radius-xs);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color var(--transition);
-}
-
-.dropdown-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.dropdown-item.text-danger {
-  color: var(--danger);
-}
-
-.dropdown-item.text-danger:hover {
-  background-color: var(--danger-light);
+  margin-top: 4px;
 }
 
 .subject-card-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 12px;
+  margin-bottom: 20px;
+  cursor: pointer;
 }
 
 .subject-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   margin: 0;
   word-break: break-word;
+  line-height: 1.3;
 }
 
-.subject-card-stats {
-  font-size: 0.875rem;
+.subject-card-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subject-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+}
+
+.subject-stat-chip svg {
+  color: var(--text-muted);
 }
 
 .subject-card-footer {
   margin-top: auto;
 }
 
-.w-100 {
+.subject-open-btn {
   width: 100%;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border);
+  transition: all var(--transition-fast);
+}
+
+.subject-btn-arrow {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.subject-card:hover .subject-open-btn {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.subject-card:hover .subject-btn-arrow {
+  color: #ffffff;
+  transform: translateX(3px);
 }

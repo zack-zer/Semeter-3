@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Trash2, FolderOpen } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, FolderOpen, FileText, CheckSquare, ArrowRight } from 'lucide-react';
 import './SubjectCard.css';
 
 const SubjectCard = ({ subject, fileCount, taskCount, onOpen, onRename, onDelete }) => {
@@ -34,41 +34,52 @@ const SubjectCard = ({ subject, fileCount, taskCount, onOpen, onRename, onDelete
       style={{ '--card-accent': subject.color || 'var(--accent)' }}
     >
       <div className="subject-card-header">
-        <div className="subject-icon-large">{subject.icon}</div>
+        <div className="subject-icon-badge">
+          <span className="subject-emoji-char">{subject.icon}</span>
+        </div>
         <div className="subject-actions" ref={menuRef}>
           <button 
             type="button"
-            className="btn-icon" 
+            className="btn-icon subject-options-btn" 
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
             title="Subject options"
             aria-label="Subject options"
           >
-            <MoreVertical size={20} />
+            <MoreVertical size={18} />
           </button>
           
           {menuOpen && (
             <div className="subject-menu dropdown-menu fade-in">
               <button className="dropdown-item" onClick={handleRename}>
-                <Edit2 size={16} /> Rename
+                <Edit2 size={15} /> Rename
               </button>
               <button className="dropdown-item text-danger" onClick={handleDelete}>
-                <Trash2 size={16} /> Delete
+                <Trash2 size={15} /> Delete
               </button>
             </div>
           )}
         </div>
       </div>
       
-      <div className="subject-card-content">
+      <div className="subject-card-content" onClick={onOpen}>
         <h3 className="subject-card-title">{subject.name}</h3>
-        <p className="subject-card-stats">
-          {fileCount} {fileCount === 1 ? 'file' : 'files'} &middot; {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
-        </p>
+        
+        <div className="subject-card-chips">
+          <span className="subject-stat-chip">
+            <FileText size={13} />
+            <span>{fileCount} {fileCount === 1 ? 'file' : 'files'}</span>
+          </span>
+          <span className="subject-stat-chip">
+            <CheckSquare size={13} />
+            <span>{taskCount} {taskCount === 1 ? 'task' : 'tasks'}</span>
+          </span>
+        </div>
       </div>
       
       <div className="subject-card-footer">
-        <button className="btn btn-primary w-100" onClick={onOpen}>
-          <FolderOpen size={18} /> Open Subject
+        <button className="btn btn-secondary subject-open-btn" onClick={onOpen}>
+          <span>View Course</span>
+          <ArrowRight size={15} className="subject-btn-arrow" />
         </button>
       </div>
     </div>

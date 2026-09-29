@@ -1,12 +1,15 @@
-/* Shared styles for FileItem and FolderItem components */
+/* ==============================================================================
+   Shared FileItem, FolderItem & Breadcrumbs Styles
+   ============================================================================== */
+
 .list-item {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--border);
-  transition: background-color var(--transition);
+  transition: background-color var(--transition-fast);
   cursor: pointer;
-  gap: 1rem;
+  gap: 14px;
 }
 
 .list-item:hover {
@@ -21,42 +24,49 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-sm);
   background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.list-item:hover .list-item-icon {
+  transform: scale(1.05);
 }
 
 .folder-item .list-item-icon {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--info-light);
+  border-color: var(--info-border);
 }
 
 .folder-icon {
-  color: #3b82f6;
-  fill: rgba(59, 130, 246, 0.2);
+  color: var(--info);
 }
 
 .file-icon {
   color: var(--text-secondary);
 }
 
-.file-icon.image { color: #10b981; }
+.file-icon.image { color: var(--success); }
 .file-icon.video { color: #8b5cf6; }
-.file-icon.audio { color: #f59e0b; }
-.file-icon.pdf { color: #ef4444; }
-.file-icon.archive { color: #6b7280; }
+.file-icon.audio { color: var(--warning); }
+.file-icon.pdf { color: var(--accent); }
+.file-icon.archive { color: #64748b; }
 
 .list-item-content {
   flex-grow: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 3px;
 }
 
 .list-item-title {
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -66,39 +76,44 @@
 .list-item-meta {
   display: flex;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  gap: 4px;
 }
 
 .file-progress-inline {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
+  margin-left: 4px;
 }
 
 .dot {
-  margin: 0 0.25rem;
+  margin: 0 2px;
+  color: var(--border-strong);
 }
 
 .progress-bar-mini {
-  width: 60px;
+  width: 64px;
 }
 
 .list-item-actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 4px;
   opacity: 0;
-  transition: opacity var(--transition);
+  transition: opacity var(--transition-fast);
 }
 
 .list-item:hover .list-item-actions {
   opacity: 1;
 }
 
-/* Breadcrumbs CSS - putting it here since it doesn't have its own file */
+/* ==============================================================================
+   Breadcrumbs Navigation Styles
+   ============================================================================== */
 .breadcrumbs {
-  margin-bottom: 1.5rem;
+  margin-bottom: 8px;
 }
 
 .breadcrumbs-list {
@@ -108,37 +123,43 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
 .breadcrumb-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 6px;
+  font-size: 0.85rem;
 }
 
 .breadcrumb-home-icon {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .breadcrumb-link {
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color var(--transition);
+  font-weight: 500;
+  padding: 3px 6px;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
 }
 
 .breadcrumb-link:hover {
   color: var(--text-primary);
+  background-color: var(--bg-tertiary);
 }
 
 .breadcrumb-active {
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 700;
+  padding: 3px 6px;
 }
 
 .breadcrumb-separator {
   color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 @media (max-width: 768px) {

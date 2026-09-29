@@ -1,24 +1,37 @@
+/* ==============================================================================
+   StatCard Component Styles
+   ============================================================================== */
+
 .stat-card {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  padding: 1.5rem;
-  transition: transform var(--transition), box-shadow var(--transition);
+  padding: 18px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow);
 }
 
 .stat-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.stat-card:hover .stat-icon-wrapper {
+  transform: scale(1.08);
 }
 
 .stat-info {
@@ -28,13 +41,16 @@
 
 .stat-value {
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
+  margin-top: 2px;
 }

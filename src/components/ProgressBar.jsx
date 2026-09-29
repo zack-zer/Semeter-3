@@ -19,14 +19,14 @@ const ProgressBar = ({ value, showLabel = false, size = 'md' }) => {
           style={{ 
             height: '100%', 
             width: `${safeValue}%`, 
-            backgroundColor: 'var(--accent)',
+            background: 'var(--accent-gradient, var(--accent))', 
             borderRadius: '999px',
-            transition: 'width 0.3s ease'
+            transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         />
       </div>
       {showLabel && (
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', minWidth: '2.5rem', textAlign: 'right' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '2.5rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
           {Math.round(safeValue)}%
         </span>
       )}

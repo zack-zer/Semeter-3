@@ -1,27 +1,37 @@
-/* Collegiate Academic Subject & Syllabus Page Styles */
+/* ==============================================================================
+   Subject Course Syllabus & Content Area Styles
+   ============================================================================== */
 
 .subject-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0;
+  max-width: 100%;
 }
 
 .subject-breadcrumbs-wrap {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 /* ==============================================================================
-   Collegiate Syllabus Header Banner
+   Syllabus Header Banner
    ============================================================================== */
 .syllabus-banner {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-top: 4px solid var(--card-accent, var(--accent));
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 28px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.syllabus-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-accent, var(--accent));
 }
 
 .syllabus-top-meta {
@@ -31,8 +41,8 @@
   flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 22px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
 
 .syllabus-badges {
@@ -46,14 +56,14 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 11px;
-  border-radius: 999px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
   font-size: 0.78rem;
   font-weight: 600;
   border: 1px solid var(--border);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .syllabus-badge.semester-badge {
@@ -63,9 +73,9 @@
 }
 
 .syllabus-badge.code-badge {
-  font-family: var(--font-serif);
   font-weight: 700;
   color: var(--text-primary);
+  font-family: var(--font-mono);
 }
 
 .syllabus-badge.module-badge {
@@ -78,6 +88,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .syllabus-main-header {
@@ -88,12 +99,12 @@
 }
 
 .syllabus-icon-frame {
-  width: 68px;
-  height: 68px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-xs);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,19 +112,19 @@
 }
 
 .syllabus-emoji-icon {
-  font-size: 2.25rem;
+  font-size: 2.2rem;
   line-height: 1;
 }
 
 .syllabus-title-block {
   flex: 1;
+  min-width: 0;
 }
 
 .syllabus-title {
-  font-family: var(--font-serif);
-  font-size: 2.1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin-bottom: 4px;
   line-height: 1.2;
@@ -129,9 +140,9 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
-  background: var(--bg-primary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 14px 18px;
 }
 
@@ -144,7 +155,7 @@
 .info-card-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--accent-light);
   color: var(--accent);
   border: 1px solid var(--accent-border);
@@ -163,14 +174,13 @@
 .info-label {
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .info-value {
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -181,46 +191,11 @@
 /* ==============================================================================
    Course Tabs & File Browsing Area
    ============================================================================== */
-.tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  margin-top: 1rem;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: all var(--transition);
-  margin-bottom: -1px;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-}
-
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
-}
-
 .file-area {
   position: relative;
   min-height: 320px;
-  border-radius: var(--radius);
-  transition: all var(--transition);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
 }
 
 .file-area.dragging {
@@ -235,20 +210,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--accent);
   z-index: 10;
   border-radius: inherit;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
 }
 
 .empty-folder {
   border: 2px dashed var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-secondary);
-  padding: 48px 24px;
+  padding: 56px 24px;
 }
 
 .grid-list {
@@ -256,28 +230,26 @@
   flex-direction: column;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .tasks-area, .notes-area {
-  padding-top: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .col-span-full {
   grid-column: 1 / -1;
 }
 
-/* ==============================================================================
-   Responsive
-   ============================================================================== */
+/* Responsive */
 @media (max-width: 900px) {
   .syllabus-info-grid {
     grid-template-columns: 1fr;
@@ -294,6 +266,6 @@
     align-items: flex-start;
   }
   .syllabus-title {
-    font-size: 1.65rem;
+    font-size: 1.55rem;
   }
 }

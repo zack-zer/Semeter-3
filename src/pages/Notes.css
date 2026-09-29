@@ -1,10 +1,109 @@
+/* ==============================================================================
+   Course Notes Page & NoteCard Styles
+   ============================================================================== */
+
 .notes-page-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: 100%;
 }
-.filter-bar {
-  margin-bottom: 2rem;
+
+.notes-grid-container {
+  margin-top: 12px;
+}
+
+.note-card {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.note-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow);
+}
+
+.note-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.note-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.note-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-subject-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.note-card-content {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.note-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.note-card-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.note-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }

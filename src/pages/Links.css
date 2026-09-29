@@ -1,6 +1,9 @@
+/* ==============================================================================
+   Academic Links & Resource Hub Styles
+   ============================================================================== */
+
 .links-page-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
 }
 
 .links-header-actions {
@@ -9,25 +12,72 @@
   gap: 0.75rem;
 }
 
+.links-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 12px 18px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-xs);
+}
+
+.quick-bar-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quick-suggestion-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-suggestion-btn:hover {
+  background-color: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent-border);
+  transform: translateY(-1px);
+}
+
 .links-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 16px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
 .links-search-box {
   position: relative;
   flex: 1;
-  min-width: 240px;
-  max-width: 400px;
+  min-width: 260px;
+  max-width: 440px;
 }
 
 .links-search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
@@ -36,18 +86,19 @@
 
 .links-search-input {
   width: 100%;
-  padding: 9px 12px 9px 38px;
+  padding: 10px 14px 10px 40px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: 0.9rem;
-  transition: border-color var(--transition);
+  font-size: 0.88rem;
+  transition: all var(--transition-fast);
 }
 
 .links-search-input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .links-filter-controls {
@@ -57,85 +108,44 @@
 }
 
 .links-category-select {
-  padding: 8px 12px;
+  padding: 9px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: 0.875rem;
-}
-
-.links-quick-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.75rem;
-  padding: 0.85rem 1.25rem;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  flex-wrap: wrap;
-}
-
-.quick-bar-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-right: 0.5rem;
-}
-
-.quick-suggestion-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   font-weight: 500;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.quick-suggestion-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--accent);
 }
 
 .links-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  gap: 18px;
 }
 
 .preset-pills-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .preset-pill {
-  padding: 4px 8px;
-  font-size: 0.75rem;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 500;
   border-radius: var(--radius-xs);
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .preset-pill:hover {
   background: var(--accent-light);
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--accent-border);
 }
 
 @media (max-width: 1024px) {

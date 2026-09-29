@@ -179,6 +179,11 @@ const SearchModal = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
+
+        <div className="search-footer">
+          <span className="search-hint"><kbd>ESC</kbd> to close</span>
+          <span className="search-hint"><kbd>↵</kbd> to select</span>
+        </div>
       </div>
     </div>
   );

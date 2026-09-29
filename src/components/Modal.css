@@ -1,11 +1,13 @@
+/* ==============================================================================
+   Modal & Dialog Component Styles
+   ============================================================================== */
+
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -14,40 +16,49 @@
 }
 
 .modal-card {
-  background-color: var(--bg-primary);
-  border-radius: var(--radius);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
   max-height: 90vh;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-top: 4px solid var(--accent);
+  position: relative;
+}
+
+.modal-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border);
   background-color: var(--bg-secondary);
 }
 
 .modal-title {
-  font-family: var(--font-serif);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   margin: 0;
 }
 
 .modal-close-btn {
   color: var(--text-muted);
-  transition: var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .modal-close-btn:hover {
@@ -56,22 +67,22 @@
 }
 
 .modal-content {
-  padding: 1.5rem;
+  padding: 24px;
   overflow-y: auto;
 }
 
 .scale-in {
-  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(6px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -83,7 +94,7 @@
   
   .modal-card {
     max-width: 100%;
-    border-radius: var(--radius) var(--radius) 0 0;
-    max-height: 95vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
   }
 }

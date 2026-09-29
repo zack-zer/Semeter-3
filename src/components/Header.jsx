@@ -50,11 +50,11 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
             aria-label={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
             title={isSidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
           >
-            <Menu size={24} />
+            <Menu size={20} />
           </button>
           <NavLink to="/" className="header-logo" title="StudyHub - Academic Workspace">
             <div className="header-emblem">
-              <GraduationCap size={19} className="emblem-icon" />
+              <GraduationCap size={18} className="emblem-icon" />
             </div>
             <div className="header-wordmark">
               <span className="brand-name">StudyHub</span>
@@ -65,23 +65,23 @@ const Header = ({ theme, onThemeToggle, onMenuToggle, isSidebarCollapsed }) => {
 
         <nav className="header-nav">
           <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end>
-            <LayoutDashboard size={20} />
+            <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </NavLink>
           <NavLink to="/semester" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <GraduationCap size={20} />
+            <GraduationCap size={16} />
             <span>Semester 3</span>
           </NavLink>
           <NavLink to="/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <CheckSquare size={20} />
+            <CheckSquare size={16} />
             <span>Tasks</span>
           </NavLink>
           <NavLink to="/notes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <StickyNote size={20} />
+            <StickyNote size={16} />
             <span>Notes</span>
           </NavLink>
           <NavLink to="/links" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <Link2 size={20} />
+            <Link2 size={16} />
             <span>Links</span>
           </NavLink>
         </nav>

@@ -1,4 +1,6 @@
-/* Collegiate Academic Dashboard Styles */
+/* ==============================================================================
+   Academic Dashboard Styles
+   ============================================================================== */
 
 .dashboard-container {
   max-width: 100%;
@@ -12,21 +14,36 @@
   background-color: var(--accent-light);
   border: 1px solid var(--accent-border);
   color: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* ==============================================================================
-   Collegiate Semester Overview Banner & Grouped Metrics
+   Semester Overview Banner & Grouped Metrics
    ============================================================================== */
 .semester-overview-card {
-  border-top: 4px solid var(--accent);
   background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 28px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 32px;
+}
+
+.semester-overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient);
 }
 
 .overview-header {
@@ -36,7 +53,7 @@
   gap: 28px;
   margin-bottom: 26px;
   padding-bottom: 22px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
 }
 
 .overview-title-block {
@@ -47,19 +64,18 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--accent);
   margin-bottom: 8px;
 }
 
 .overview-heading {
-  font-family: var(--font-serif);
-  font-size: 1.7rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin-bottom: 6px;
 }
@@ -67,17 +83,17 @@
 .overview-caption {
   font-size: 0.92rem;
   color: var(--text-secondary);
-  max-width: 560px;
+  max-width: 580px;
   line-height: 1.5;
 }
 
 .overview-progress-panel {
-  min-width: 270px;
+  min-width: 280px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 14px 18px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-xs);
 }
 
 .term-progress-header {
@@ -98,14 +114,14 @@
 
 .term-progress-value {
   color: var(--accent);
-  font-family: var(--font-serif);
-  font-size: 0.92rem;
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .term-progress-bar-wrap {
   height: 8px;
   background: var(--bg-primary);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   overflow: hidden;
   margin-bottom: 8px;
   border: 1px solid var(--border);
@@ -113,20 +129,22 @@
 
 .term-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #cb5467 100%);
-  border-radius: 999px;
-  transition: width 0.4s ease;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-full);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .term-progress-meta {
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
   display: flex;
   gap: 6px;
   font-weight: 500;
 }
 
-/* Grouped Academic Metrics */
+/* ==============================================================================
+   Grouped Academic Metrics Grid
+   ============================================================================== */
 .academic-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -138,17 +156,18 @@
   align-items: center;
   gap: 14px;
   padding: 16px 18px;
-  background: var(--bg-primary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .academic-stat-item:hover {
   border-color: var(--accent-border);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow);
+  background: var(--bg-hover);
 }
 
 .stat-icon-emblem {
@@ -157,8 +176,13 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: 12px;
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.academic-stat-item:hover .stat-icon-emblem {
+  transform: scale(1.06);
 }
 
 .subjects-emblem {
@@ -168,21 +192,21 @@
 }
 
 .files-emblem {
-  background: rgba(46, 125, 175, 0.12);
-  color: #2b7cb0;
-  border: 1px solid rgba(46, 125, 175, 0.25);
+  background: var(--info-light);
+  color: var(--info);
+  border: 1px solid var(--info-border);
 }
 
 .pending-emblem {
   background: var(--warning-light);
   color: var(--warning);
-  border: 1px solid rgba(217, 150, 50, 0.25);
+  border: 1px solid var(--warning-border);
 }
 
 .completed-emblem {
   background: var(--success-light);
   color: var(--success);
-  border: 1px solid rgba(74, 158, 107, 0.25);
+  border: 1px solid var(--success-border);
 }
 
 .stat-body {
@@ -191,17 +215,18 @@
 }
 
 .stat-number {
-  font-family: var(--font-serif);
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 2px;
 }
 
@@ -214,20 +239,27 @@
 
 .section-header-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   gap: 12px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  font-size: 1.25rem;
 }
 
 .section-title-icon {
   color: var(--accent);
-  margin-right: 6px;
-  vertical-align: -2px;
 }
 
 .section-caption {
   font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* ==============================================================================
@@ -242,13 +274,18 @@
 .recent-file-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  border-top: 3px solid var(--accent-border);
+  gap: 16px;
   padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
 .recent-file-card:hover {
-  border-top-color: var(--accent);
+  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow);
 }
 
 .recent-file-header {
@@ -261,9 +298,9 @@
   width: 44px;
   height: 44px;
   border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
+  background: var(--accent-light);
   color: var(--accent);
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,23 +313,23 @@
 }
 
 .recent-file-subject {
-  display: block;
-  font-size: 0.75rem;
+  display: inline-block;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
   margin-bottom: 3px;
 }
 
 .recent-file-name {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .recent-file-progress {
@@ -306,6 +343,7 @@
   justify-content: space-between;
   font-size: 0.78rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .recent-file-time {
@@ -314,25 +352,28 @@
 
 .recent-file-btn {
   width: 100%;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .empty-recent {
   padding: 48px 24px;
   text-align: center;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
 }
 
 .empty-recent-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 420px;
+  max-width: 440px;
   margin: 0 auto;
 }
 
 .empty-recent-badge {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
@@ -344,10 +385,10 @@
 }
 
 .empty-recent-content h3 {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   margin-bottom: 6px;
+  color: var(--text-primary);
 }
 
 /* ==============================================================================
@@ -363,17 +404,20 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 20px;
+  padding: 18px 20px;
   cursor: pointer;
-  border-top: 3px solid var(--border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   text-align: left;
-  transition: transform var(--transition), box-shadow var(--transition), border-top-color var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .quick-action-card:hover {
   transform: translateY(-2px);
-  border-top-color: var(--accent);
+  border-color: var(--accent-border);
   box-shadow: var(--shadow);
+  background: var(--bg-hover);
 }
 
 .quick-action-icon-wrap {
@@ -387,6 +431,11 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.quick-action-card:hover .quick-action-icon-wrap {
+  transform: scale(1.08);
 }
 
 .quick-action-text {
@@ -396,26 +445,25 @@
 }
 
 .quick-action-title {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .quick-action-desc {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   margin-top: 2px;
 }
 
 .quick-action-arrow {
   color: var(--text-muted);
-  transition: transform var(--transition), color var(--transition);
+  transition: transform var(--transition-fast), color var(--transition-fast);
 }
 
 .quick-action-card:hover .quick-action-arrow {
   color: var(--accent);
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 /* ==============================================================================
@@ -441,6 +489,11 @@
   .quick-actions-grid {
     grid-template-columns: 1fr;
   }
+  .section-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -448,6 +501,6 @@
     grid-template-columns: 1fr;
   }
   .overview-heading {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 }
