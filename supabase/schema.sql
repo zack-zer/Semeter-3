@@ -12,9 +12,15 @@ CREATE TABLE IF NOT EXISTS public.workspaces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT NOT NULL,
     username_normalized TEXT NOT NULL UNIQUE,
+    password_hash TEXT,
+    password_salt TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Non-destructive backward-compatible column addition for existing workspaces tables
+ALTER TABLE public.workspaces ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE public.workspaces ADD COLUMN IF NOT EXISTS password_salt TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_workspaces_normalized ON public.workspaces(username_normalized);
 

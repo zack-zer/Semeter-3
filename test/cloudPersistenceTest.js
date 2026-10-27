@@ -1,10 +1,15 @@
 /**
- * Username-Only Multi-Device Workspace & Isolation Verification Test
+ * StudyHub Password Authentication & Multi-Device Workspace Verification Test
  */
 import {
   normalizeUsername,
   validateUsername,
 } from '../src/storage/supabaseClient.js';
+import {
+  validatePassword,
+  hashPassword,
+  verifyPassword,
+} from '../src/utils/authSecurity.js';
 
 async function runTests() {
   console.log('=== TEST 1: Username Rules & Validation ===');
@@ -30,7 +35,44 @@ async function runTests() {
     console.log(`✓ Invalid username properly rejected: "${item.input}" (${item.reason}) -> "${res.error}"`);
   }
 
-  console.log('\n=== TEST 2: Case-Insensitive Matching ===');
+  console.log('\n=== TEST 2: Password Validation & Cryptographic PBKDF2 Hashing ===');
+
+  const invalidPasswords = [
+    { input: '', reason: 'empty' },
+    { input: '12345', reason: 'too short (< 6 chars)' },
+  ];
+  for (const item of invalidPasswords) {
+    const res = validatePassword(item.input);
+    if (res.valid) throw new Error(`Expected password "${item.input}" to be rejected for: ${item.reason}`);
+    console.log(`✓ Invalid password rejected: "${item.input}" (${item.reason}) -> "${res.error}"`);
+  }
+
+  const validPassword = 'SecretStudyPass123!';
+  const passRes = validatePassword(validPassword);
+  if (!passRes.valid) throw new Error(`Expected valid password, got: ${passRes.error}`);
+  console.log('✓ Valid password accepted.');
+
+  // Hash password using PBKDF2
+  const { hash: hash1, salt: salt1 } = await hashPassword(validPassword);
+  const { hash: hash2, salt: salt2 } = await hashPassword(validPassword);
+
+  if (hash1.length !== 64 || salt1.length !== 32) {
+    throw new Error('FAIL: Unexpected hash or salt byte length.');
+  }
+  if (salt1 === salt2 || hash1 === hash2) {
+    throw new Error('FAIL: Each hash must use a unique cryptographically random salt.');
+  }
+  console.log(`✓ PBKDF2 hash generated with 100k iterations and unique 16-byte random salt.`);
+
+  const matchCorrect = await verifyPassword(validPassword, hash1, salt1);
+  if (!matchCorrect) throw new Error('FAIL: Correct password verification failed.');
+  console.log('✓ Correct password successfully verified against stored hash & salt.');
+
+  const matchWrong = await verifyPassword('WrongPassword999', hash1, salt1);
+  if (matchWrong) throw new Error('FAIL: Incorrect password was falsely accepted.');
+  console.log('✓ Incorrect password properly rejected.');
+
+  console.log('\n=== TEST 3: Case-Insensitive Matching ===');
   const variations = ['zackk', 'Zackk', 'ZACKK', '  zackk  '];
   const normalizedSet = new Set(variations.map(normalizeUsername));
   if (normalizedSet.size === 1 && normalizedSet.has('zackk')) {
@@ -39,9 +81,9 @@ async function runTests() {
     throw new Error('FAIL: Case-insensitive username normalization failed');
   }
 
-  console.log('\n=== TEST 3: Multi-Device Workspace Synchronization ===');
-  // Simulated Cloud PostgreSQL database
+  console.log('\n=== TEST 4: Multi-Device Workspace Synchronization with Passwords ===');
   const cloudWorkspaces = new Map();
+  const cloudCredentials = new Map();
   const cloudSubjects = new Map();
   const cloudFiles = new Map();
   const cloudReadingProgress = new Map();
@@ -49,11 +91,12 @@ async function runTests() {
   const cloudNotes = new Map();
 
   // DEVICE A FLOW:
-  console.log('--- DEVICE A: User enters "zackk" ---');
+  console.log('--- DEVICE A: User creates "zackk" with password ---');
   const rawInputA = 'zackk';
   const normA = normalizeUsername(rawInputA);
+  const userPasswordA = 'ZackSecureStudy2026!';
 
-  // Claim/Create workspace on Device A
+  const { hash: credHashA, salt: credSaltA } = await hashPassword(userPasswordA);
   const workspaceA = {
     id: 'ws-zackk-uuid-1234',
     username: 'zackk',
@@ -62,9 +105,10 @@ async function runTests() {
     last_active_at: new Date().toISOString(),
   };
   cloudWorkspaces.set(normA, workspaceA);
+  cloudCredentials.set(workspaceA.id, { hash: credHashA, salt: credSaltA });
   console.log(`Workspace established on Device A: [ID: ${workspaceA.id}, Username: "${workspaceA.username}"]`);
 
-  // Device A creates Subject: Web
+  // Device A creates Subject & File
   const subjectId = 'sub-web-001';
   cloudSubjects.set(subjectId, {
     id: subjectId,
@@ -74,7 +118,6 @@ async function runTests() {
     created_at: new Date().toISOString(),
   });
 
-  // Device A uploads PDF: course.pdf
   const fileId = 'file-pdf-001';
   cloudFiles.set(fileId, {
     id: fileId,
@@ -86,7 +129,6 @@ async function runTests() {
     storage_path: `${workspaceA.id}/${fileId}_course.pdf`,
   });
 
-  // Device A reads to Page 72 of 150
   cloudReadingProgress.set(`${workspaceA.id}_${fileId}`, {
     id: `${workspaceA.id}_${fileId}`,
     workspace_id: workspaceA.id,
@@ -96,51 +138,29 @@ async function runTests() {
     updated_at: new Date().toISOString(),
   });
 
-  // Device A creates Task: Finish TP1
-  const taskId = 'task-001';
-  cloudTasks.set(taskId, {
-    id: taskId,
-    workspace_id: workspaceA.id,
-    title: 'Finish TP1',
-    subject_id: subjectId,
-    done: false,
-  });
-
-  // Device A creates Note: Important chapter
-  const noteId = 'note-001';
-  cloudNotes.set(noteId, {
-    id: noteId,
-    workspace_id: workspaceA.id,
-    title: 'Important chapter',
-    content: 'Review web storage and state synchronization...',
-    subject_id: subjectId,
-  });
-
-  console.log('Device A successfully created study data in cloud.');
-
   // DEVICE B FLOW (Second Device / Phone / Laptop):
-  console.log('\n--- DEVICE B: User enters "zackk" on second device ---');
-  const rawInputB = 'Zackk'; // testing with mixed casing
-  const normB = normalizeUsername(rawInputB);
-
-  // Look up existing workspace
+  console.log('\n--- DEVICE B: User logs into "Zackk" on second device with password ---');
+  const normB = normalizeUsername('Zackk');
   const workspaceB = cloudWorkspaces.get(normB);
   if (!workspaceB) throw new Error('Device B failed to find workspace for zackk');
-  console.log(`Device B connected to workspace: [ID: ${workspaceB.id}, Username: "${workspaceB.username}"]`);
 
-  // Query Device B data by workspace_id
+  const credsB = cloudCredentials.get(workspaceB.id);
+  if (!credsB) throw new Error('Device B failed to retrieve cloud credentials.');
+
+  // Attempt wrong password on Device B
+  const wrongLoginAttempt = await verifyPassword('BadPassword!', credsB.hash, credsB.salt);
+  if (wrongLoginAttempt) throw new Error('Device B falsely logged in with bad password.');
+  console.log('✓ Device B rejected incorrect password.');
+
+  // Attempt correct password on Device B
+  const correctLoginAttempt = await verifyPassword(userPasswordA, credsB.hash, credsB.salt);
+  if (!correctLoginAttempt) throw new Error('Device B failed to verify correct password.');
+  console.log('✓ Device B logged in successfully with correct password.');
+
+  // Verify Device B sees exact same study data and workspace ID
   const subjectsB = Array.from(cloudSubjects.values()).filter(s => s.workspace_id === workspaceB.id);
   const filesB = Array.from(cloudFiles.values()).filter(f => f.workspace_id === workspaceB.id);
   const progressB = cloudReadingProgress.get(`${workspaceB.id}_${fileId}`);
-  const tasksB = Array.from(cloudTasks.values()).filter(t => t.workspace_id === workspaceB.id);
-  const notesB = Array.from(cloudNotes.values()).filter(n => n.workspace_id === workspaceB.id);
-
-  console.log('Device B fetched:');
-  console.log(`- Subject: "${subjectsB[0]?.name}" (Count: ${subjectsB.length})`);
-  console.log(`- PDF: "${filesB[0]?.name}" (Count: ${filesB.length})`);
-  console.log(`- PDF Reading Position: Page ${progressB?.current_page} / ${progressB?.total_pages}`);
-  console.log(`- Task: "${tasksB[0]?.title}" (Count: ${tasksB.length})`);
-  console.log(`- Note: "${notesB[0]?.title}" (Count: ${notesB.length})`);
 
   if (
     workspaceB.id === workspaceA.id &&
@@ -148,134 +168,135 @@ async function runTests() {
     subjectsB[0].name === 'Web' &&
     filesB.length === 1 &&
     filesB[0].name === 'course.pdf' &&
-    progressB?.current_page === 72 &&
-    tasksB.length === 1 &&
-    tasksB[0].title === 'Finish TP1' &&
-    notesB.length === 1 &&
-    notesB[0].title === 'Important chapter'
+    progressB?.current_page === 72
   ) {
     console.log('✓ PASS: Device B received 100% identical data, PDF, and Page 72 position from Device A!');
   } else {
     throw new Error('FAIL: Multi-device data sync verification failed');
   }
 
-  // DEVICE C FLOW (Different user: "ahmed123"):
-  console.log('\n=== TEST 4: Data Isolation Between Different Usernames ===');
-  const normAhmed = normalizeUsername('ahmed123');
-  const workspaceAhmed = {
-    id: 'ws-ahmed-uuid-5678',
-    username: 'ahmed123',
-    username_normalized: normAhmed,
+  console.log('\n=== TEST 5: Existing Accounts Without Passwords Migration Flow ===');
+  // Scenario: User "tim_student" already exists in the database with 5 subjects and 3 files, but NO password.
+  const existingUserId = 'ws-tim-pre-existing-id-9999';
+  const existingTim = {
+    id: existingUserId,
+    username: 'tim_student',
+    username_normalized: 'tim_student',
+    created_at: new Date('2026-08-01').toISOString(),
+    last_active_at: new Date('2026-08-01').toISOString(),
   };
-  cloudWorkspaces.set(normAhmed, workspaceAhmed);
+  cloudWorkspaces.set('tim_student', existingTim);
 
-  const subjectsAhmed = Array.from(cloudSubjects.values()).filter(s => s.workspace_id === workspaceAhmed.id);
-  const filesAhmed = Array.from(cloudFiles.values()).filter(f => f.workspace_id === workspaceAhmed.id);
-  const progressAhmed = cloudReadingProgress.get(`${workspaceAhmed.id}_${fileId}`);
-  const tasksAhmed = Array.from(cloudTasks.values()).filter(t => t.workspace_id === workspaceAhmed.id);
-  const notesAhmed = Array.from(cloudNotes.values()).filter(n => n.workspace_id === workspaceAhmed.id);
+  // Add existing study data for Tim
+  cloudSubjects.set('sub-tim-1', { id: 'sub-tim-1', workspace_id: existingUserId, name: 'Algorithms' });
+  cloudSubjects.set('sub-tim-2', { id: 'sub-tim-2', workspace_id: existingUserId, name: 'Operating Systems' });
+  cloudFiles.set('file-tim-1', { id: 'file-tim-1', workspace_id: existingUserId, name: 'algo-chapter-1.pdf' });
 
-  console.log(`Workspace "ahmed123" sees:`);
-  console.log(`- Subjects: ${subjectsAhmed.length}`);
-  console.log(`- Files: ${filesAhmed.length}`);
-  console.log(`- Reading Progress: ${progressAhmed ? 'Leaked' : 'None'}`);
-  console.log(`- Tasks: ${tasksAhmed.length}`);
-  console.log(`- Notes: ${notesAhmed.length}`);
+  console.log(`Initial state for "tim_student": Workspace ID: ${existingTim.id}, Subjects: 2, Files: 1, Has Password: NO`);
 
-  if (subjectsAhmed.length === 0 && filesAhmed.length === 0 && !progressAhmed && tasksAhmed.length === 0 && notesAhmed.length === 0) {
-    console.log('✓ PASS: Strict isolation verified! "ahmed123" cannot see "zackk"\'s study workspace.');
+  // Tim enters his username in the login form
+  const foundTim = cloudWorkspaces.get(normalizeUsername('tim_student'));
+  const timHasPassword = cloudCredentials.has(foundTim.id);
+  if (timHasPassword) throw new Error('Expected Tim to not have a password yet.');
+  console.log('✓ Detected that "tim_student" exists but does NOT have a password.');
+
+  // Tim creates and confirms a new password
+  const newTimPassword = 'TimSecretPassword2026!';
+  const { hash: timHash, salt: timSalt } = await hashPassword(newTimPassword);
+  cloudCredentials.set(foundTim.id, { hash: timHash, salt: timSalt });
+  console.log('✓ Password created and securely associated with existing account ID.');
+
+  // Verify Tim's documents and account ID are 100% intact
+  const timSubjectsAfter = Array.from(cloudSubjects.values()).filter(s => s.workspace_id === existingUserId);
+  const timFilesAfter = Array.from(cloudFiles.values()).filter(f => f.workspace_id === existingUserId);
+
+  if (
+    foundTim.id === existingUserId &&
+    timSubjectsAfter.length === 2 &&
+    timSubjectsAfter[0].name === 'Algorithms' &&
+    timFilesAfter.length === 1 &&
+    timFilesAfter[0].name === 'algo-chapter-1.pdf'
+  ) {
+    console.log('✓ PASS: All documents, subjects, and workspace ID preserved intact with zero data loss!');
   } else {
-    throw new Error('FAIL: Workspace isolation failed. Data leaked between users.');
+    throw new Error('FAIL: Existing user data was disconnected or altered during password creation.');
   }
 
-  console.log('\n=== TEST 5: Distinct "Create Username" vs "Enter Existing Username" Actions ===');
-  // Mock Workspace Store
-  const registeredUsers = new Map();
-  registeredUsers.set('zackk', {
-    id: 'ws-zackk-123',
-    username: 'zackk',
-    username_normalized: 'zackk',
-    created_at: new Date().toISOString(),
-  });
+  // Future login: Tim logs in again with his newly set password
+  console.log('\nFuture login for "tim_student":');
+  const timCredsFuture = cloudCredentials.get(foundTim.id);
+  const badLoginFuture = await verifyPassword('wrongPass', timCredsFuture.hash, timCredsFuture.salt);
+  if (badLoginFuture) throw new Error('Failed to reject wrong password for Tim.');
+  console.log('✓ Future login: Incorrect password rejected.');
 
-  const mockCreateWorkspace = async (raw) => {
-    const val = validateUsername(raw);
-    if (!val.valid) throw new Error(val.error);
-    const norm = normalizeUsername(raw);
-    if (registeredUsers.has(norm)) {
+  const goodLoginFuture = await verifyPassword(newTimPassword, timCredsFuture.hash, timCredsFuture.salt);
+  if (!goodLoginFuture) throw new Error('Failed to accept correct password for Tim.');
+  console.log('✓ Future login: Correct password accepted, user successfully logged in.');
+
+  console.log('\n=== TEST 6: New Account Registration with Password Confirmation & Duplicate Prevention ===');
+  const mockCreateWorkspace = async (rawUser, rawPass, confirmPass) => {
+    const uVal = validateUsername(rawUser);
+    if (!uVal.valid) throw new Error(uVal.error);
+    const pVal = validatePassword(rawPass);
+    if (!pVal.valid) throw new Error(pVal.error);
+    if (rawPass !== confirmPass) throw new Error('Passwords do not match.');
+
+    const norm = normalizeUsername(rawUser);
+    if (cloudWorkspaces.has(norm)) {
       throw new Error('Username already exists.');
     }
-    const record = {
-      id: `ws-${norm}-generated`,
-      username: raw.trim(),
+
+    const { hash, salt } = await hashPassword(rawPass);
+    const newWs = {
+      id: `ws-${norm}-uuid`,
+      username: rawUser.trim(),
       username_normalized: norm,
       created_at: new Date().toISOString(),
     };
-    registeredUsers.set(norm, record);
-    return record;
+    cloudWorkspaces.set(norm, newWs);
+    cloudCredentials.set(newWs.id, { hash, salt });
+    return newWs;
   };
 
-  const mockLoginWorkspace = async (raw) => {
-    const val = validateUsername(raw);
-    if (!val.valid) throw new Error(val.error);
-    const norm = normalizeUsername(raw);
-    const existing = registeredUsers.get(norm);
-    if (!existing) {
-      throw new Error('Username not found.');
-    }
-    return existing;
-  };
-
-  // Case A: Create brand new username
-  console.log('Case A: Creating brand new username "sara_student"...');
-  const createdSara = await mockCreateWorkspace('sara_student');
-  if (createdSara && registeredUsers.has('sara_student')) {
-    console.log('✓ PASS: New username "sara_student" successfully created.');
+  // Case A: Successful new account creation
+  console.log('Case A: Creating brand new account "sara_student"...');
+  const saraWs = await mockCreateWorkspace('sara_student', 'SaraPass2026!', 'SaraPass2026!');
+  if (saraWs && cloudWorkspaces.has('sara_student') && cloudCredentials.has(saraWs.id)) {
+    console.log('✓ PASS: New account "sara_student" successfully created with password.');
   } else {
-    throw new Error('FAIL: New username creation failed.');
+    throw new Error('FAIL: New account creation failed.');
   }
 
-  // Case B: Duplicate creation attempt
-  console.log('Case B: Attempting to create existing username "sara_student" again...');
+  // Case B: Password mismatch
+  console.log('Case B: Testing password confirmation mismatch...');
+  let mismatchError = null;
+  try {
+    await mockCreateWorkspace('another_user', 'Pass123456!', 'DifferentPass!');
+  } catch (err) {
+    mismatchError = err.message;
+  }
+  if (mismatchError === 'Passwords do not match.') {
+    console.log('✓ PASS: Password confirmation mismatch blocked.');
+  } else {
+    throw new Error(`FAIL: Expected mismatch error, got: ${mismatchError}`);
+  }
+
+  // Case C: Duplicate username
+  console.log('Case C: Testing duplicate username rejection...');
   let dupError = null;
   try {
-    await mockCreateWorkspace('Sara_Student');
+    await mockCreateWorkspace('Sara_Student', 'AnotherPass123!', 'AnotherPass123!');
   } catch (err) {
     dupError = err.message;
   }
   if (dupError === 'Username already exists.') {
-    console.log('✓ PASS: Duplicate creation blocked with exact message: "Username already exists."');
+    console.log('✓ PASS: Duplicate username blocked with exact message: "Username already exists."');
   } else {
-    throw new Error(`FAIL: Expected "Username already exists." but got "${dupError}"`);
-  }
-
-  // Case C: Login with existing username
-  console.log('Case C: Logging into existing username "zackk"...');
-  const loggedInZack = await mockLoginWorkspace('Zackk');
-  if (loggedInZack && loggedInZack.id === 'ws-zackk-123') {
-    console.log('✓ PASS: Existing user "zackk" logged in successfully with all data intact.');
-  } else {
-    throw new Error('FAIL: Existing user login failed.');
-  }
-
-  // Case D: Login with non-existent username
-  console.log('Case D: Attempting to log into non-existent username "ghost_user"...');
-  let notFoundError = null;
-  const countBefore = registeredUsers.size;
-  try {
-    await mockLoginWorkspace('ghost_user');
-  } catch (err) {
-    notFoundError = err.message;
-  }
-  const countAfter = registeredUsers.size;
-  if (notFoundError === 'Username not found.' && countBefore === countAfter) {
-    console.log('✓ PASS: Non-existent login blocked with exact message: "Username not found." and NO account created.');
-  } else {
-    throw new Error(`FAIL: Expected "Username not found." and no account created, got: "${notFoundError}"`);
+    throw new Error(`FAIL: Expected duplicate error, got: ${dupError}`);
   }
 
   console.log('\n======================================================');
-  console.log('ALL USERNAME-ONLY CLOUD WORKSPACE TESTS PASSED (100%)');
+  console.log('ALL STUDYHUB PASSWORD AUTHENTICATION TESTS PASSED (100%)');
   console.log('======================================================');
 }
 

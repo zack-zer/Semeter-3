@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   supabase,
   getSupabaseConfig,
@@ -7,6 +7,13 @@ import {
   normalizeUsername,
   validateUsername,
 } from '../storage/supabaseClient';
+import {
+  validatePassword,
+  hashPassword,
+  verifyPassword,
+  getWorkspaceCredentials,
+  saveWorkspaceCredentials,
+} from '../utils/authSecurity';
 
 const AuthContext = createContext(null);
 
@@ -56,11 +63,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Create a new StudyHub workspace for a new username.
-   * Fails if username already exists.
+   * Check whether an account exists and whether it already has a password set.
    * @param {string} rawUsername
+   * @returns {Promise<{ exists: boolean, hasPassword: boolean, workspace: object|null }>}
    */
-  const createWorkspace = async (rawUsername) => {
+  const checkAccountStatus = async (rawUsername) => {
     setError(null);
     const validation = validateUsername(rawUsername);
     if (!validation.valid) {
@@ -68,8 +75,64 @@ export function AuthProvider({ children }) {
     }
 
     const normalized = normalizeUsername(rawUsername);
+    const { isConfigured } = getSupabaseConfig();
+
+    let target = null;
+    if (!isConfigured) {
+      const localWorkspaces = JSON.parse(localStorage.getItem('studyhub_local_workspaces') || '[]');
+      target = localWorkspaces.find((w) => w.username_normalized === normalized) || null;
+    } else {
+      const { data, error: selectError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('username_normalized', normalized)
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('[StudyHub] Error checking account status:', selectError);
+        throw new Error(`Cloud connection error: ${selectError.message}`);
+      }
+      target = data;
+    }
+
+    if (!target) {
+      return { exists: false, hasPassword: false, workspace: null };
+    }
+
+    const creds = await getWorkspaceCredentials(target);
+    const hasPassword = Boolean(creds && creds.hash && creds.salt);
+
+    return {
+      exists: true,
+      hasPassword,
+      workspace: target,
+    };
+  };
+
+  /**
+   * Create a new StudyHub workspace for a new username and password.
+   * Fails if username already exists.
+   * @param {string} rawUsername
+   * @param {string} rawPassword
+   */
+  const createWorkspace = async (rawUsername, rawPassword) => {
+    setError(null);
+    const userVal = validateUsername(rawUsername);
+    if (!userVal.valid) {
+      throw new Error(userVal.error);
+    }
+
+    const passVal = validatePassword(rawPassword);
+    if (!passVal.valid) {
+      throw new Error(passVal.error);
+    }
+
+    const normalized = normalizeUsername(rawUsername);
     const trimmed = rawUsername.trim();
     const { isConfigured } = getSupabaseConfig();
+
+    // Hash password with PBKDF2
+    const { hash, salt } = await hashPassword(rawPassword);
 
     if (!isConfigured) {
       // Local demo mode fallback
@@ -88,13 +151,14 @@ export function AuthProvider({ children }) {
       };
       localWorkspaces.push(newWs);
       localStorage.setItem('studyhub_local_workspaces', JSON.stringify(localWorkspaces));
+      await saveWorkspaceCredentials(newWs, hash, salt);
       setActiveWorkspace(newWs);
       setWorkspace(newWs);
       return newWs;
     }
 
     // Remote Supabase Cloud Persistence
-    // Check if workspace already exists
+    // 1. Check if workspace already exists
     const { data: existing, error: selectError } = await supabase
       .from('workspaces')
       .select('id, username')
@@ -110,7 +174,7 @@ export function AuthProvider({ children }) {
       throw new Error('Username already exists.');
     }
 
-    // Workspace does not exist -> Create new workspace
+    // 2. Workspace does not exist -> Create new workspace
     const newRecord = {
       username: trimmed,
       username_normalized: normalized,
@@ -136,62 +200,154 @@ export function AuthProvider({ children }) {
       throw new Error(`Failed to create workspace: ${insertError.message}`);
     }
 
+    // 3. Save password credentials securely
+    await saveWorkspaceCredentials(created, hash, salt);
+
     setActiveWorkspace(created);
     setWorkspace(created);
     return created;
   };
 
   /**
-   * Log into an existing StudyHub workspace by username.
-   * Fails if username does not exist.
+   * Log into an existing StudyHub workspace by username and password.
+   * If the account exists but does not have a password yet, throws an error with code 'NO_PASSWORD_SET'.
    * @param {string} rawUsername
+   * @param {string} [rawPassword]
    */
-  const loginWorkspace = async (rawUsername) => {
+  const loginWorkspace = async (rawUsername, rawPassword) => {
     setError(null);
-    const validation = validateUsername(rawUsername);
-    if (!validation.valid) {
-      throw new Error(validation.error);
+    const userVal = validateUsername(rawUsername);
+    if (!userVal.valid) {
+      throw new Error(userVal.error);
     }
 
     const normalized = normalizeUsername(rawUsername);
     const { isConfigured } = getSupabaseConfig();
 
+    let existing = null;
     if (!isConfigured) {
       // Local demo mode fallback
       const localWorkspaces = JSON.parse(localStorage.getItem('studyhub_local_workspaces') || '[]');
-      const found = localWorkspaces.find((w) => w.username_normalized === normalized);
-      if (!found) {
-        throw new Error('Username not found.');
+      existing = localWorkspaces.find((w) => w.username_normalized === normalized);
+    } else {
+      // Remote Supabase Cloud Persistence
+      const { data, error: selectError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('username_normalized', normalized)
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('[StudyHub] Error querying workspace:', selectError);
+        throw new Error(`Cloud connection error: ${selectError.message}`);
       }
-      setActiveWorkspace(found);
-      setWorkspace(found);
-      return found;
-    }
-
-    // Remote Supabase Cloud Persistence
-    const { data: existing, error: selectError } = await supabase
-      .from('workspaces')
-      .select('*')
-      .eq('username_normalized', normalized)
-      .maybeSingle();
-
-    if (selectError) {
-      console.error('[StudyHub] Error querying workspace:', selectError);
-      throw new Error(`Cloud connection error: ${selectError.message}`);
+      existing = data;
     }
 
     if (!existing) {
       throw new Error('Username not found.');
     }
 
+    // Retrieve stored credentials for this account
+    const creds = await getWorkspaceCredentials(existing);
+    if (!creds || !creds.hash || !creds.salt) {
+      // Existing account without password
+      const err = new Error('This account does not have a password set yet. Please create a password to continue.');
+      err.code = 'NO_PASSWORD_SET';
+      err.workspace = existing;
+      throw err;
+    }
+
+    // Account has a password: verify it
+    if (!rawPassword) {
+      throw new Error('Please enter your password.');
+    }
+
+    const isMatch = await verifyPassword(rawPassword, creds.hash, creds.salt);
+    if (!isMatch) {
+      throw new Error('Incorrect password. Please try again.');
+    }
+
     // Update last_active_at timestamp without modifying existing study data
-    try {
-      await supabase
+    if (isConfigured) {
+      try {
+        await supabase
+          .from('workspaces')
+          .update({ last_active_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } catch (e) {
+        // Non-blocking update failure
+      }
+    }
+
+    setActiveWorkspace(existing);
+    setWorkspace(existing);
+    return existing;
+  };
+
+  /**
+   * Set a password for an existing account that has no password yet.
+   * Preserves all documents, PDFs, subjects, notes, and the existing workspace ID.
+   * @param {string} rawUsername
+   * @param {string} newPassword
+   */
+  const setPasswordForExistingWorkspace = async (rawUsername, newPassword) => {
+    setError(null);
+    const userVal = validateUsername(rawUsername);
+    if (!userVal.valid) {
+      throw new Error(userVal.error);
+    }
+
+    const passVal = validatePassword(newPassword);
+    if (!passVal.valid) {
+      throw new Error(passVal.error);
+    }
+
+    const normalized = normalizeUsername(rawUsername);
+    const { isConfigured } = getSupabaseConfig();
+
+    let existing = null;
+    if (!isConfigured) {
+      const localWorkspaces = JSON.parse(localStorage.getItem('studyhub_local_workspaces') || '[]');
+      existing = localWorkspaces.find((w) => w.username_normalized === normalized);
+    } else {
+      const { data, error: selectError } = await supabase
         .from('workspaces')
-        .update({ last_active_at: new Date().toISOString() })
-        .eq('id', existing.id);
-    } catch (e) {
-      // Non-blocking update failure
+        .select('*')
+        .eq('username_normalized', normalized)
+        .maybeSingle();
+
+      if (selectError) {
+        throw new Error(`Cloud connection error: ${selectError.message}`);
+      }
+      existing = data;
+    }
+
+    if (!existing) {
+      throw new Error('Username not found.');
+    }
+
+    // Guard: Prevent overwriting if password already exists
+    const currentCreds = await getWorkspaceCredentials(existing);
+    if (currentCreds && currentCreds.hash && currentCreds.salt) {
+      throw new Error('This account already has a password set. Please log in with your password.');
+    }
+
+    // Hash new password using PBKDF2
+    const { hash, salt } = await hashPassword(newPassword);
+
+    // Save credentials associated with existing workspace (does NOT touch workspace id or documents)
+    await saveWorkspaceCredentials(existing, hash, salt);
+
+    if (isConfigured) {
+      try {
+        await supabase
+          .from('workspaces')
+          .update({ last_active_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } catch (e) {
+        // Non-blocking
+      }
     }
 
     setActiveWorkspace(existing);
@@ -202,12 +358,12 @@ export function AuthProvider({ children }) {
   /**
    * Legacy enter helper for backward compatibility
    */
-  const enterWorkspace = async (rawUsername) => {
+  const enterWorkspace = async (rawUsername, password) => {
     try {
-      return await loginWorkspace(rawUsername);
+      return await loginWorkspace(rawUsername, password);
     } catch (err) {
       if (err.message === 'Username not found.') {
-        return await createWorkspace(rawUsername);
+        return await createWorkspace(rawUsername, password);
       }
       throw err;
     }
@@ -230,8 +386,10 @@ export function AuthProvider({ children }) {
     loading,
     error,
     setError,
+    checkAccountStatus,
     createWorkspace,
     loginWorkspace,
+    setPasswordForExistingWorkspace,
     enterWorkspace,
     signIn: loginWorkspace,
     signUp: createWorkspace,
